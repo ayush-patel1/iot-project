@@ -71,15 +71,26 @@ def save_prediction(result: dict, source: str):
     label = prediction.strip().lower()
     is_benign = label in {"benign", "normal", "0", "false"} or label.startswith("benign")
     is_attack = label == "attack" or "attack" in label
-    status = "normal" if is_benign else "suspicious" if is_attack else "unclassified"
+
+    # Packet-derived live features are not yet validated against the training pipeline.
+    # Preserve the model output for diagnostics, but never create an alert or signal Arduino.
+    experimental_live = source.startswith("live-wifi-capture")
+    status = ("unclassified" if experimental_live else
+              "normal" if is_benign else "suspicious" if is_attack else "unclassified")
     event = {"timestamp": datetime.now(timezone.utc).isoformat(), "source": source,
              "scenario": "pretrained-ml-inference", "status": status,
-             "attack_type": prediction, "confidence": result.get("confidence"),
+             "attack_type": prediction, "model_prediction": prediction,
+             "confidence": result.get("confidence"),
              "latency_ms": result.get("latency_ms"), "detector": "pretrained-ciciot2023",
              "model": result.get("model", "lightgbm"), "feature_count": result.get("feature_count")}
+    if experimental_live:
+        event["classification_note"] = (
+            "Experimental packet-derived features are not validated against the model training pipeline; "
+            "prediction is informational only and is not an intrusion alert."
+        )
     events.appendleft(event)
     try:
-        if status in {"suspicious", "normal"}:
+        if not experimental_live and status in {"suspicious", "normal"}:
             notify_arduino(status)
     except Exception as exc:
         event["arduino_error"] = str(exc)
