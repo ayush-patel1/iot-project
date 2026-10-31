@@ -20,6 +20,7 @@ allowed_origins = [origin.strip().rstrip("/") for origin in os.getenv("CORS_ORIG
 allowed_origins += ["http://127.0.0.1:5173", "http://localhost:5173"]
 app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 events: deque[dict] = deque(maxlen=500)
+latest_device_telemetry: dict | None = None
 serial_lock = threading.Lock()
 arduino = None
 
@@ -31,6 +32,12 @@ class MLRequest(BaseModel):
 class LabRequest(BaseModel):
     scenario: Literal["normal", "burst", "failed_requests", "large_payload"]
     model: Literal["lightgbm", "randomforest"] = "lightgbm"
+
+class DeviceTelemetry(BaseModel):
+    device_id: str
+    uptime_ms: int
+    led_state: Literal["on", "off"]
+    firmware: str = "sentinel-uno-v1"
 
 @app.on_event("startup")
 def startup():
@@ -146,6 +153,16 @@ def run_lab(req: LabRequest):
 @app.get("/alerts")
 def get_alerts():
     return list(events)
+
+@app.post("/device/telemetry")
+def receive_device_telemetry(data: DeviceTelemetry):
+    global latest_device_telemetry
+    latest_device_telemetry = {**data.model_dump(), "received_at": datetime.now(timezone.utc).isoformat(), "connected": True}
+    return {"status": "received", "device": latest_device_telemetry}
+
+@app.get("/device/telemetry")
+def get_device_telemetry():
+    return latest_device_telemetry or {"connected": False, "message": "No Arduino telemetry received yet"}
 
 @app.get("/stats")
 def stats():
