@@ -98,7 +98,7 @@ export default function App() {
     </aside>
 
     <section className="main">
-      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",lab:"Attack Lab",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor ML detections and system health.",traffic:"Inspect benchmark inference activity and test the pretrained model.",lab:"Generate safe, bounded traffic patterns against a local test service.",alerts:"Review and export suspicious and benign ML predictions.",device:"Check the Arduino bridge status and local hardware setup."})[page]}</p></div>
+      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",lab:"Attack Lab",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor ML detections and system health.",traffic:"Inspect benchmark inference and run the local Wi-Fi capture agent.",lab:"Generate safe, bounded traffic patterns against a local test service.",alerts:"Review and export suspicious and benign ML predictions.",device:"Check the Arduino bridge status and local hardware setup."})[page]}</p></div>
         <div className="top-actions"><span className={health ? "status-pill online" : "status-pill offline"}><i/> {health ? "API connected" : "API disconnected"}</span><button className="icon-button" onClick={refresh} title="Refresh"><RefreshCw size={17}/></button></div>
       </header>
 
@@ -182,7 +182,14 @@ export default function App() {
         <article className="panel chart-panel"><div className="panel-heading"><div><h2>Prediction confidence</h2><p>Confidence percentage for recent ML samples</p></div><span className="tag">AUTO REFRESH</span></div>
           {chartData.length ? <ResponsiveContainer width="100%" height={270}><AreaChart data={chartData}><defs><linearGradient id="trafficConfidence" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.24}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#e8edf4" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><YAxis domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><Tooltip/><Area type="monotone" dataKey="confidence" stroke="#269d8a" strokeWidth={2.5} fill="url(#trafficConfidence)"/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No ML samples yet</b><span>Run a sample to see its confidence here.</span></div>}
         </article>
-        <div className="page-note"><Wifi size={17}/><div><b>Live packet capture is not connected yet</b><span>The current traffic monitor displays model inference results from preloaded CIC-IoT-2023 examples. The next integration is a local packet-capture and flow-feature agent.</span></div></div>
+        <div className="panel table-panel">
+          <div className="panel-heading"><div><h2>Live Wi-Fi capture · Windows</h2><p>Run this local agent from your cloned repository</p></div><span className="tag">LOCAL AGENT</span></div>
+          <p>Install Npcap and Scapy, then open PowerShell as Administrator in your project folder.</p>
+          <pre>py -m pip install -r network/requirements.txt{"\n"}py network/live_capture.py --interface Wi-Fi</pre>
+          <p>Capture-only mode prints real packet-derived flow summaries and does not call the ML model. To submit experimental feature estimates:</p>
+          <pre>py network/live_capture.py --interface Wi-Fi --infer --api https://iot-project-avq0.onrender.com</pre>
+          <div className="lab-warning"><AlertTriangle size={18}/><div><b>Experimental feature mapping — not validated</b><span>The local agent groups your laptop's visible Wi-Fi traffic into 10-second flows and estimates the model's 20 selected fields. Some CIC-IoT-2023 feature definitions may differ from these estimates. Treat model outputs as experiments, not confirmed attacks. It does not monitor other devices on your Wi-Fi.</span></div></div>
+        </div>
       </>}
       {page === "alerts" && <>
         {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
