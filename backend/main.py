@@ -16,7 +16,9 @@ except ImportError:
 MODEL_API = os.getenv("SENTINEL_MODEL_API", "https://tbommawa-iot-ids-api.hf.space").rstrip("/")
 TIMEOUT = float(os.getenv("MODEL_API_TIMEOUT", "25"))
 app = FastAPI(title="SentinelIoT API", version="0.2.0")
-allowed_origins = [origin.strip().rstrip("/") for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin.strip()]\nallowed_origins += ["http://127.0.0.1:5173", "http://localhost:5173"]\napp.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
+allowed_origins = [origin.strip().rstrip("/") for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin.strip()]
+allowed_origins += ["http://127.0.0.1:5173", "http://localhost:5173"]
+app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 events: deque[dict] = deque(maxlen=500)
 serial_lock = threading.Lock()
 arduino = None
