@@ -25,7 +25,7 @@ The Uno does **not** sniff Wi-Fi, capture packets, or run the ML model. Render c
 - `arduino/`: Uno firmware
 - `backend/`: FastAPI service and hosted model integration
 - `frontend/`: React dashboard
-- `network/`: local-only HTTP test server and traffic generator
+- `network/`: local HTTP test tools, Arduino bridge, and Windows Wi-Fi packet capture agent
 - `ml/`: model feature-schema notes
 
 ## Quick start (Windows)
@@ -59,13 +59,32 @@ python network/device_agent.py --port COM3
 ```
 Replace `COM3` with the port shown in Arduino IDE. The firmware sends JSON telemetry containing device ID, uptime and LED state every two seconds. The agent posts it to `/device/telemetry`, which is displayed on the Device endpoint page. The agent also polls `/alerts` and sends `A` for suspicious predictions or `N` for normal predictions.
 
-**No sensor is connected yet:** uptime and LED state are genuine board telemetry, but they are not temperature, humidity, motion or network traffic. This endpoint does not send device telemetry to the intrusion classifier. Network intrusion prediction still requires actual captured network flows and a validated CIC-IoT-2023 feature extractor.
+**No sensor is connected yet:** uptime and LED state are genuine board telemetry, but they are not temperature, humidity, motion or network traffic. This endpoint does not send device telemetry to the intrusion classifier. The live capture agent is documented below. Its current packet-derived feature adapter is experimental and not validated as equivalent to the provider training pipeline.
 
 ## Arduino notes
 The firmware accepts `A` (LED on) and `N` (LED off) over USB serial at 9600 baud. A board plugged into your laptop cannot be controlled by the hosted Render backend directly. A local serial bridge still needs to be run on the laptop; do not set the laptop's COM port in Render.
 
-## Model and feature-schema limitation
-The hosted model expects the exact named CIC-IoT-2023 flow features documented in `ml/README.md`. Raw packets and arbitrary HTTP requests cannot be sent directly to it. Live capture and a validated flow-feature adapter are not implemented yet.
+## Live Wi-Fi packet capture (Windows)
+Npcap and Scapy are required. The adapter captures traffic visible to your own laptop's Wi-Fi interface; it does not capture all other devices on the access point.
+
+1. Install Npcap from https://npcap.com/#download (administrator install).
+2. Install Python dependencies:
+   ```powershell
+   py -m pip install -r network/requirements.txt
+   ```
+3. In PowerShell (run as Administrator if Npcap denies access), capture and inspect real packets without sending model requests:
+   ```powershell
+   py network/live_capture.py --interface Wi-Fi
+   ```
+4. To additionally submit flow feature estimates to the hosted model:
+   ```powershell
+   py network/live_capture.py --interface Wi-Fi --infer --api https://iot-project-avq0.onrender.com
+   ```
+Stop with Ctrl+C. The adapter groups packets into bidirectional 10-second flows and derives packet counts, sizes, timing, TCP flags, and HTTPS-port indicators. It prints flow summaries and, with `--infer`, sends the provider's 20 selected CIC-IoT-2023 feature names to `POST /ml/predict`. The source is recorded as `live-wifi-capture-experimental`.
+
+**Critical model limitation:** this is a best-effort mapping, not the original CIC-IoT-2023 flow extraction code. In particular, fields such as `Weight`, `Number`, `Magnitue`, and `Header_Length` may not have the same definitions or units as the model's training data. The provider API applies its stored scaler, but that does not make mismatched feature semantics valid. Use capture-only mode first; predictions from `--infer` are experimental and must not be treated as validated intrusion alerts. A production-quality IDS requires reproducing the provider's exact feature extraction pipeline and validating it against labelled data.
+
+The API now accepts an optional `source` field on `/ml/predict` so the dashboard can distinguish live-capture experiments from other feature submissions. Unknown model labels are marked `unclassified` rather than automatically being treated as attacks.
 
 ## Safety
 Only test systems you own or are explicitly authorized to test. This Attack Lab is deliberately limited to loopback traffic on your own machine.
