@@ -24,6 +24,6 @@ Example request body:
 
 The backend records model predictions and sends Arduino LED alerts for Attack predictions.
 
-IMPORTANT: the model is hosted remotely, not copied into this repository. Its CIC-IoT-2023 feature schema is dataset-specific. The existing localhost traffic simulator does not yet extract these 20 flow features, so /demo/analyze remains a clearly labelled rule-based demonstration. /ml/demo and /ml/predict call the actual pretrained model. Live traffic ML requires a compatible flow-feature extractor.
+IMPORTANT: the model is hosted remotely, not copied into this repository. Its CIC-IoT-2023 feature schema is dataset-specific. `POST /lab/run` builds a synthetic 20-field profile from a bounded Attack Lab scenario and submits it to `/predict`. This is an integration demonstration only: the values are estimated from scenario metadata, not extracted from packets, and are not validated as genuine CIC-IoT-2023 flow statistics. Real live-traffic inference still requires a compatible packet/flow extractor and validation against the provider's preprocessing and feature semantics.
 
 Set SENTINEL_MODEL_API to point at a compatible self-hosted API. Install backend dependencies with pip install -r backend/requirements.txt.
