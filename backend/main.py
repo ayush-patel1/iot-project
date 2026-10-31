@@ -82,12 +82,13 @@ def save_prediction(result: dict, source: str, expected_prediction: str | None =
     # Packet-derived live features are not yet validated against the training pipeline.
     # Preserve the model output for diagnostics, but never create an alert or signal Arduino.
     experimental_live = source.startswith("live-wifi-capture")
+    synthetic_demo = source == "pretrained-ciciot2023-demo"
     expected_class = normalize_prediction(expected_prediction) if expected_prediction else None
     test_result = ("not-comparable" if not expected_class or model_class == "Unclassified"
                    else "pass" if model_class == expected_class else "mismatch")
-    # Only count a synthetic test as normal/suspicious when the model agrees
-    # with the scenario's expected class. A mismatch is diagnostic, not an alert.
-    status = ("unclassified" if experimental_live or test_result == "mismatch" else
+    # Demo samples are validation fixtures, not observed network traffic. Keep
+    # their model output visible, but never count them as live detections/alerts.
+    status = ("unclassified" if experimental_live or synthetic_demo or test_result == "mismatch" else
               "normal" if model_class == "Benign" else
               "suspicious" if model_class == "Attack" else "unclassified")
     event = {"timestamp": datetime.now(timezone.utc).isoformat(), "source": source,
@@ -102,6 +103,12 @@ def save_prediction(result: dict, source: str, expected_prediction: str | None =
             "Experimental packet-derived features are not validated against the model training pipeline; "
             "prediction is informational only and is not an intrusion alert."
         )
+    if synthetic_demo:
+        event["classification_note"] = (
+            "Provider demo fixture, not observed network traffic. Its source marks the sample values as "
+            "already scaled while the demo inference path appears to apply the scaler again; treat this "
+            "prediction as diagnostic until the provider corrects that preprocessing path."
+        )
     if expected_class and test_result == "mismatch":
         event["classification_note"] = (
             f"Scenario expected {expected_class}, but the model predicted {model_class}. "
@@ -110,7 +117,7 @@ def save_prediction(result: dict, source: str, expected_prediction: str | None =
     events.appendleft(event)
     try:
         # Do not let a failed synthetic test trigger a physical Arduino alarm.
-        if not experimental_live and test_result != "mismatch" and status in {"suspicious", "normal"}:
+        if not experimental_live and not synthetic_demo and test_result != "mismatch" and status in {"suspicious", "normal"}:
             notify_arduino(status)
     except Exception as exc:
         event["arduino_error"] = str(exc)
