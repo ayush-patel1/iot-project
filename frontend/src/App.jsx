@@ -158,7 +158,8 @@ export default function App() {
         </div>
         {labResult && <article className="panel table-panel">
           <div className="panel-heading"><div><h2>Scenario inference result</h2><p>{labResult.scenario} · hosted LightGBM</p></div><span className="tag">20 FEATURES SENT</span></div>
-          <div className="ml-result"><b>Model prediction: {labResult.inference?.prediction}</b><span>Confidence: {Math.round((labResult.inference?.confidence || 0)*100)}% · {labResult.inference?.latency_ms} ms · Event recorded in Threat alerts</span></div>
+          <div className="ml-result"><b>Model prediction: {labResult.sentinel_event?.model_prediction || labResult.inference?.prediction}</b><span>Expected: {labResult.sentinel_event?.expected_prediction || "—"} · Test result: {labResult.sentinel_event?.test_result || "not comparable"} · Confidence: {Math.round((labResult.inference?.confidence || 0)*100)}%</span></div>
+          {labResult.sentinel_event?.test_result === "mismatch" && <div className="lab-warning"><AlertTriangle size={18}/><div><b>Expected result and model prediction differ</b><span>This is a synthetic test mismatch, not proof of a real network attack. It will not trigger the Arduino alarm.</span></div></div>}
           <p className="lab-hint">{labResult.feature_note}</p>
           <details><summary>View the 20 submitted features</summary><pre>{JSON.stringify(labResult.features,null,2)}</pre></details>
         </article>}
