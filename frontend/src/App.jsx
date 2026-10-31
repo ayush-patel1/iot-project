@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Cpu, Download, Radio, RefreshCw, ShieldCheck, ShieldAlert, Wifi } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 
 function Stat({ label, value, hint, icon: Icon, tone = "blue" }) {
   return <article className="stat-card">
