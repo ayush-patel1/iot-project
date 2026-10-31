@@ -20,6 +20,8 @@ export default function App() {
   const [mlBusy, setMlBusy] = useState(false);
   const [mlResult, setMlResult] = useState(null);
   const [copiedScenario, setCopiedScenario] = useState("");
+  const [labBusy, setLabBusy] = useState("");
+  const [labResult, setLabResult] = useState(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -49,6 +51,20 @@ export default function App() {
       await refresh();
     } catch (e) { setError(e.message); }
     finally { setMlBusy(false); }
+  }
+
+  async function runLabScenario(scenario) {
+    setLabBusy(scenario); setError(""); setLabResult(null);
+    try {
+      const response = await fetch(`${API}/lab/run`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenario, model: "lightgbm" })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Attack Lab inference failed");
+      setLabResult(data); await refresh();
+    } catch (e) { setError(e.message); }
+    finally { setLabBusy(""); }
   }
 
   const chartData = useMemo(() => [...alerts].slice(0, 12).reverse().map((x, i) => ({
@@ -123,27 +139,27 @@ export default function App() {
       <footer>SentinelIoT · Educational defensive prototype · Benchmark samples are sent to the pretrained ML model; live traffic capture is not enabled yet.</footer>
       </>}
       {page === "lab" && <>
-        <div className="lab-warning"><AlertTriangle size={18}/><div><b>Local-only simulation · Not a real network attack</b><span>These scenarios send a small, bounded number of HTTP requests to 127.0.0.1:5001 on your own laptop. They do not perform DDoS, credential guessing, port scanning, or target external devices.</span></div></div>
-        <div className="lab-setup panel">
-          <div className="panel-heading"><div><h2>Before running a scenario</h2><p>Open two terminals in the project root folder.</p></div><span className="tag">ONE-TIME SETUP</span></div>
-          <div className="lab-terminal"><span>TERMINAL 1 · LOCAL TEST SERVER</span><code>pip install -r network/requirements.txt</code><code>python network/local_server.py</code></div>
-          <div className="lab-terminal"><span>TERMINAL 2 · RUN A SCENARIO</span><code>python network/traffic_generator.py --scenario normal</code></div>
-          <p className="lab-hint">Keep Terminal 1 running. Run one scenario at a time in Terminal 2. Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to stop the server or an ongoing run.</p>
-        </div>
+        {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
+        <div className="lab-warning"><AlertTriangle size={18}/><div><b>Cloud Attack Lab · synthetic flow inference</b><span>Choose a bounded scenario. SentinelIoT derives the model's 20 named input fields from a synthetic HTTP profile and sends them to the hosted CIC-IoT-2023 API. These are approximations, not packet-captured dataset flows.</span></div></div>
         <div className="lab-grid">
           {[
-            {id:"normal",title:"Normal activity",kind:"Baseline",desc:"15 spaced requests to local health and device endpoints.",command:"python network/traffic_generator.py --scenario normal",tone:"good"},
-            {id:"burst",title:"Request burst",kind:"Traffic anomaly",desc:"25 quick requests to the local health endpoint. This is a small burst, not a DoS test.",command:"python network/traffic_generator.py --scenario burst",tone:"warn"},
-            {id:"failed_requests",title:"Repeated failed paths",kind:"Error pattern",desc:"10 requests to deliberately missing local paths that return HTTP 404.",command:"python network/traffic_generator.py --scenario failed_requests",tone:"warn"},
-            {id:"large_payload",title:"Large request body",kind:"Payload test",desc:"One 4 KB JSON payload sent to the local echo endpoint.",command:"python network/traffic_generator.py --scenario large_payload",tone:"blue"}
+            {id:"normal",title:"Normal activity",kind:"Baseline",desc:"15 spaced HTTP-like events with modest payload sizes.",tone:"good"},
+            {id:"burst",title:"Request burst",kind:"Traffic anomaly",desc:"25 closely spaced events to model a short request burst.",tone:"warn"},
+            {id:"failed_requests",title:"Repeated failed paths",kind:"Error pattern",desc:"10 events representing repeated HTTP 404 responses.",tone:"warn"},
+            {id:"large_payload",title:"Large request body",kind:"Payload test",desc:"One event with an approximately 4 KB request body.",tone:"blue"}
           ].map(item=><article className="panel lab-card" key={item.id}>
-            <div className="lab-card-top"><span className={`lab-kind ${item.tone}`}>{item.kind}</span><span className="lab-local">127.0.0.1 only</span></div>
+            <div className="lab-card-top"><span className={`lab-kind ${item.tone}`}>{item.kind}</span><span className="lab-local">CLOUD INFERENCE</span></div>
             <h3>{item.title}</h3><p>{item.desc}</p>
-            <code className="lab-command">{item.command}</code>
-            <button className="btn subtle lab-copy" onClick={()=>copyCommand(item.id)}>{copiedScenario===item.id?<Check size={14}/>:<Copy size={14}/>} {copiedScenario===item.id?"Copied":"Copy command"}</button>
+            <button className={item.tone==="warn"?"btn danger":"btn subtle"} disabled={!!labBusy} onClick={()=>runLabScenario(item.id)}>{labBusy===item.id?"Running model…":"Run scenario + ML inference"}</button>
           </article>)}
         </div>
-        <div className="page-note"><Wifi size={17}/><div><b>What appears in the dashboard?</b><span>These scripts currently generate localhost HTTP traffic only. They do not yet create CIC-IoT-2023's 20 flow features, so they will not automatically appear as ML predictions or trigger Arduino alerts. The hosted ML sample buttons remain the verified model-inference demo until the feature adapter is implemented.</span></div></div>
+        {labResult && <article className="panel table-panel">
+          <div className="panel-heading"><div><h2>Scenario inference result</h2><p>{labResult.scenario} · hosted LightGBM</p></div><span className="tag">20 FEATURES SENT</span></div>
+          <div className="ml-result"><b>Model prediction: {labResult.inference?.prediction}</b><span>Confidence: {Math.round((labResult.inference?.confidence || 0)*100)}% · {labResult.inference?.latency_ms} ms · Event recorded in Threat alerts</span></div>
+          <p className="lab-hint">{labResult.feature_note}</p>
+          <details><summary>View the 20 submitted features</summary><pre>{JSON.stringify(labResult.features,null,2)}</pre></details>
+        </article>}
+        <div className="page-note"><Wifi size={17}/><div><b>What appears in the dashboard?</b><span>Each successful run now calls the hosted ML API and records its returned classification in Overview, Traffic monitor and Threat alerts. Arduino alerts require the local serial bridge; synthetic feature predictions are experimental and not validated live-network detections.</span></div></div>
       </>}
       {page === "traffic" && <>
         {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
