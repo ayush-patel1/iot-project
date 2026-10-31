@@ -85,7 +85,9 @@ def save_prediction(result: dict, source: str, expected_prediction: str | None =
     expected_class = normalize_prediction(expected_prediction) if expected_prediction else None
     test_result = ("not-comparable" if not expected_class or model_class == "Unclassified"
                    else "pass" if model_class == expected_class else "mismatch")
-    status = ("unclassified" if experimental_live else
+    # Only count a synthetic test as normal/suspicious when the model agrees
+    # with the scenario's expected class. A mismatch is diagnostic, not an alert.
+    status = ("unclassified" if experimental_live or test_result == "mismatch" else
               "normal" if model_class == "Benign" else
               "suspicious" if model_class == "Attack" else "unclassified")
     event = {"timestamp": datetime.now(timezone.utc).isoformat(), "source": source,
