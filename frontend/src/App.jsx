@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Cpu, Download, Radio, RefreshCw, ShieldCheck, ShieldAlert, Wifi } from "lucide-react";
+import { Activity, AlertTriangle, Cpu, Download, Radio, RefreshCw, ShieldCheck, ShieldAlert, Wifi, FlaskConical, Copy, Check } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const API = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
@@ -18,7 +18,7 @@ export default function App() {
   const [stats, setStats] = useState({ events: 0, normal: 0, suspicious: 0 });
   const [error, setError] = useState("");
   const [mlBusy, setMlBusy] = useState(false);
-  const [mlResult, setMlResult] = useState(null);
+  const [mlResult, setMlResult] = useState(null);\n  const [copiedScenario, setCopiedScenario] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -55,7 +55,7 @@ export default function App() {
     confidence: Math.round((x.confidence || 0) * 100)
   })), [alerts]);
 
-  function exportAlerts() {
+  async function copyCommand(scenario) {\n    const command = `python network/traffic_generator.py --scenario ${scenario}`;\n    try { await navigator.clipboard.writeText(command); setCopiedScenario(scenario); }\n    catch { setError("Clipboard access unavailable. Copy the command shown in the Attack Lab manually."); }\n  }\n\n  function exportAlerts() {
     const blob = new Blob([JSON.stringify(alerts, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob); const a = document.createElement("a");
     a.href = url; a.download = "sentineliot-alerts.json"; a.click(); URL.revokeObjectURL(url);
@@ -66,14 +66,14 @@ export default function App() {
       <div className="brand"><div className="brand-mark"><ShieldCheck size={23}/></div><div><b>SENTINEL<span>IoT</span></b><small>THREAT MONITOR</small></div></div>
       <div className="side-label">WORKSPACE</div>
       <button className={`nav-item ${page === "overview" ? "active" : ""}`} onClick={() => setPage("overview")}><Activity size={17}/> Overview</button>
-      <button className={`nav-item ${page === "traffic" ? "active" : ""}`} onClick={() => setPage("traffic")}><Radio size={17}/> Traffic monitor</button>
+      <button className={`nav-item ${page === "traffic" ? "active" : ""}`} onClick={() => setPage("traffic")}><Radio size={17}/> Traffic monitor</button>\n      <button className={`nav-item ${page === "lab" ? "active" : ""}`} onClick={() => setPage("lab")}><FlaskConical size={17}/> Attack Lab</button>
       <button className={`nav-item ${page === "alerts" ? "active" : ""}`} onClick={() => setPage("alerts")}><ShieldAlert size={17}/> Threat alerts</button>
       <button className={`nav-item ${page === "device" ? "active" : ""}`} onClick={() => setPage("device")}><Cpu size={17}/> Device endpoint</button>
       <div className="sidebar-bottom"><div className="live-dot"/> Local monitoring mode <small>Prototype v0.1</small></div>
     </aside>
 
     <section className="main">
-      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor ML detections and system health.",traffic:"Inspect benchmark inference activity and test the pretrained model.",alerts:"Review and export suspicious and benign ML predictions.",device:"Check the Arduino bridge status and local hardware setup."})[page]}</p></div>
+      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",lab:"Attack Lab",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor ML detections and system health.",traffic:"Inspect benchmark inference activity and test the pretrained model.",lab:"Generate safe, bounded traffic patterns against a local test service.",alerts:"Review and export suspicious and benign ML predictions.",device:"Check the Arduino bridge status and local hardware setup."})[page]}</p></div>
         <div className="top-actions"><span className={health ? "status-pill online" : "status-pill offline"}><i/> {health ? "API connected" : "API disconnected"}</span><button className="icon-button" onClick={refresh} title="Refresh"><RefreshCw size={17}/></button></div>
       </header>
 
@@ -113,6 +113,29 @@ export default function App() {
         </tbody></table></div>
       </article>
       <footer>SentinelIoT · Educational defensive prototype · Benchmark samples are sent to the pretrained ML model; live traffic capture is not enabled yet.</footer>
+      </>}
+      {page === "lab" && <>
+        <div className="lab-warning"><AlertTriangle size={18}/><div><b>Local-only simulation · Not a real network attack</b><span>These scenarios send a small, bounded number of HTTP requests to 127.0.0.1:5001 on your own laptop. They do not perform DDoS, credential guessing, port scanning, or target external devices.</span></div></div>
+        <div className="lab-setup panel">
+          <div className="panel-heading"><div><h2>Before running a scenario</h2><p>Open two terminals in the project root folder.</p></div><span className="tag">ONE-TIME SETUP</span></div>
+          <div className="lab-terminal"><span>TERMINAL 1 · LOCAL TEST SERVER</span><code>pip install -r network/requirements.txt</code><code>python network/local_server.py</code></div>
+          <div className="lab-terminal"><span>TERMINAL 2 · RUN A SCENARIO</span><code>python network/traffic_generator.py --scenario normal</code></div>
+          <p className="lab-hint">Keep Terminal 1 running. Run one scenario at a time in Terminal 2. Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to stop the server or an ongoing run.</p>
+        </div>
+        <div className="lab-grid">
+          {[
+            {id:"normal",title:"Normal activity",kind:"Baseline",desc:"15 spaced requests to local health and device endpoints.",command:"python network/traffic_generator.py --scenario normal",tone:"good"},
+            {id:"burst",title:"Request burst",kind:"Traffic anomaly",desc:"25 quick requests to the local health endpoint. This is a small burst, not a DoS test.",command:"python network/traffic_generator.py --scenario burst",tone:"warn"},
+            {id:"failed_requests",title:"Repeated failed paths",kind:"Error pattern",desc:"10 requests to deliberately missing local paths that return HTTP 404.",command:"python network/traffic_generator.py --scenario failed_requests",tone:"warn"},
+            {id:"large_payload",title:"Large request body",kind:"Payload test",desc:"One 4 KB JSON payload sent to the local echo endpoint.",command:"python network/traffic_generator.py --scenario large_payload",tone:"blue"}
+          ].map(item=><article className="panel lab-card" key={item.id}>
+            <div className="lab-card-top"><span className={`lab-kind ${item.tone}`}>{item.kind}</span><span className="lab-local">127.0.0.1 only</span></div>
+            <h3>{item.title}</h3><p>{item.desc}</p>
+            <code className="lab-command">{item.command}</code>
+            <button className="btn subtle lab-copy" onClick={()=>copyCommand(item.id)}>{copiedScenario===item.id?<Check size={14}/>:<Copy size={14}/>} {copiedScenario===item.id?"Copied":"Copy command"}</button>
+          </article>)}
+        </div>
+        <div className="page-note"><Wifi size={17}/><div><b>What appears in the dashboard?</b><span>These scripts currently generate localhost HTTP traffic only. They do not yet create CIC-IoT-2023's 20 flow features, so they will not automatically appear as ML predictions or trigger Arduino alerts. The hosted ML sample buttons remain the verified model-inference demo until the feature adapter is implemented.</span></div></div>
       </>}
       {page === "traffic" && <>
         {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
