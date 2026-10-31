@@ -68,6 +68,8 @@ export default function App() {
     finally { setLabBusy(""); }
   }
 
+  const deviceConnected = Boolean(deviceTelemetry?.connected && deviceTelemetry?.received_at && Date.now() - Date.parse(deviceTelemetry.received_at) < 10000);
+
   const chartData = useMemo(() => [...alerts].slice(0, 12).reverse().map((x, i) => ({
     name: new Date(x.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
     confidence: Math.round((x.confidence || 0) * 100)
@@ -118,7 +120,7 @@ export default function App() {
         <Stat label="Events processed" value={stats.events ?? 0} hint="In-memory session history" icon={Activity}/>
         <Stat label="Normal events" value={stats.normal ?? 0} hint="ML-classified benign" icon={ShieldCheck} tone="green"/>
         <Stat label="Suspicious events" value={stats.suspicious ?? 0} hint="ML-classified attack" icon={AlertTriangle} tone="red"/>
-        <Stat label="Arduino endpoint" value={health?.arduino_connected ? "Connected" : "Not connected"} hint="USB serial bridge" icon={Cpu} tone="purple"/>
+        <Stat label="Arduino endpoint" value={deviceConnected ? "Connected" : "Not connected"} hint="USB serial bridge" icon={Cpu} tone="purple"/>
       </div>
 
       <div className="content-grid">
@@ -126,9 +128,9 @@ export default function App() {
           {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)"/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run an ML sample above to populate the chart.</span></div>}
         </article>
         <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino endpoint</h2><p>USB-connected physical response</p></div><Cpu size={19}/></div>
-          <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{health?.arduino_connected ? "Serial connection active" : "Waiting for serial connection"}</span></div>
+          <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Waiting for local bridge telemetry"}</span></div>
           <div className="device-meta"><span>Protocol</span><b>USB Serial · 9600 baud</b></div><div className="device-meta"><span>Alert command</span><b>A = LED ON · N = LED OFF</b></div>
-          <div className="muted-note">Connect the board and set ARDUINO_PORT in your environment to enable hardware alerts.</div>
+          <div className="muted-note">Run the local device_agent.py bridge on the laptop connected to the Arduino. The dashboard marks it connected while telemetry is received (within the last 10 seconds).</div>
         </article>
       </div>
 
@@ -208,9 +210,9 @@ export default function App() {
       {page === "device" && <>
         <div className="content-grid">
           <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino Uno status</h2><p>USB serial hardware bridge</p></div><Cpu size={19}/></div>
-            <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{health?.arduino_connected ? "Serial connection active" : "Not connected to hosted backend"}</span></div>
+            <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Local USB bridge connected" : "Waiting for local bridge telemetry"}</span></div>
             <div className="device-meta"><span>Backend status</span><b>{health?.status || "Unknown"}</b></div>
-            <div className="device-meta"><span>Device telemetry</span><b>{deviceTelemetry?.connected ? "Receiving" : "Waiting for device"}</b></div>
+            <div className="device-meta"><span>Device telemetry</span><b>{deviceConnected ? "Receiving live telemetry" : "Telemetry stale / not received"}</b></div>
             <div className="device-meta"><span>Device ID</span><b>{deviceTelemetry?.device_id || "—"}</b></div>
             <div className="device-meta"><span>Uptime</span><b>{deviceTelemetry?.uptime_ms != null ? `${Math.floor(deviceTelemetry.uptime_ms / 1000)} sec` : "—"}</b></div>
             <div className="device-meta"><span>Board LED</span><b>{deviceTelemetry?.led_state || "—"}</b></div>
@@ -225,7 +227,7 @@ export default function App() {
             <div className="architecture-step"><span>03</span><div><b>Arduino Uno</b><small>Receives A or N and changes the LED state.</small></div></div>
           </article>
         </div>
-        <div className="page-note"><AlertTriangle size={17}/><div><b>Hardware is not remotely connected yet</b><span>Do not set ARDUINO_PORT on Render for a board plugged into your personal laptop. The serial process must run locally on that same laptop.</span></div></div>
+        <div className="page-note"><AlertTriangle size={17}/><div><b>Local hardware bridge status</b><span>The dashboard uses recent telemetry from your local Python bridge. Keep device_agent.py running on the laptop connected to the Arduino; Render cannot access that laptop USB port.</span></div></div>
       </>}
 
     </section>
