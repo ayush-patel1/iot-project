@@ -4,6 +4,13 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 
 const API = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 
+function predictionLabel(event) {
+  const value = String(event?.model_prediction || event?.attack_type || event?.prediction || "").trim().toLowerCase();
+  if (value === "attack" || value.includes("attack")) return "Attack";
+  if (value === "benign" || value === "normal" || value === "0") return "Benign";
+  return "Unclassified";
+}
+
 function Stat({ label, value, hint, icon: Icon, tone = "blue" }) {
   return <article className="stat-card">
     <div className="stat-top"><span>{label}</span><span className={`icon-wrap ${tone}`}><Icon size={18}/></span></div>
@@ -136,7 +143,7 @@ export default function App() {
 
       <article className="panel table-panel"><div className="panel-heading"><div><h2>Recent ML detections</h2><p>Latest activity detected by the SentinelIoT engine.</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
         <div className="table-wrap"><table><thead><tr><th>TIME</th><th>DETECTION</th><th>CONFIDENCE</th><th>MODEL</th><th>LATENCY</th><th>STATUS</th></tr></thead><tbody>
-          {alerts.length ? alerts.slice(0, 8).map((a, i) => <tr key={a.timestamp + i}><td>{new Date(a.timestamp).toLocaleTimeString()}</td><td>{a.model_prediction || a.attack_type || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence * 100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={a.status === "suspicious" ? "event-badge bad" : a.status === "normal" ? "event-badge good" : "event-badge neutral"}>{a.status === "suspicious" ? "Suspicious" : a.status === "normal" ? "Benign" : "Review"}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No detection events recorded yet.</td></tr>}
+          {alerts.length ? alerts.slice(0, 8).map((a, i) => <tr key={a.timestamp + i}><td>{new Date(a.timestamp).toLocaleTimeString()}</td><td>{a.model_prediction || a.attack_type || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence * 100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={predictionLabel(a) === "Attack" ? "event-badge bad" : predictionLabel(a) === "Benign" ? "event-badge good" : "event-badge neutral"}>{predictionLabel(a)}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No detection events recorded yet.</td></tr>}
         </tbody></table></div>
       </article>
       <footer>SentinelIoT · Educational defensive prototype · Benchmark samples are sent to the pretrained ML model; live traffic capture is not enabled yet.</footer>
@@ -204,7 +211,7 @@ export default function App() {
         </div>
         <article className="panel table-panel"><div className="panel-heading"><div><h2>Detection history</h2><p>ML-generated predictions received by SentinelIoT</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
           <div className="table-wrap"><table><thead><tr><th>TIME</th><th>DETECTION</th><th>CONFIDENCE</th><th>MODEL</th><th>LATENCY</th><th>STATUS</th></tr></thead><tbody>
-            {alerts.length ? alerts.map((a,i)=><tr key={a.timestamp+i}><td>{new Date(a.timestamp).toLocaleString()}</td><td>{a.model_prediction || a.attack_type || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence*100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={a.status==="suspicious"?"event-badge bad":a.status==="normal"?"event-badge good":"event-badge neutral"}>{a.status==="suspicious"?"Suspicious":a.status==="normal"?"Benign":"Review"}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No ML alerts yet. Run a sample from Traffic monitor.</td></tr>}
+            {alerts.length ? alerts.map((a,i)=><tr key={a.timestamp+i}><td>{new Date(a.timestamp).toLocaleString()}</td><td>{a.model_prediction || a.attack_type || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence*100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={predictionLabel(a)==="Attack"?"event-badge bad":predictionLabel(a)==="Benign"?"event-badge good":"event-badge neutral"}>{predictionLabel(a)}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No ML alerts yet. Run a sample from Traffic monitor.</td></tr>}
           </tbody></table></div>
         </article>
       </>}
