@@ -28,6 +28,10 @@ class MLRequest(BaseModel):
     model: Literal["lightgbm","randomforest"] = "lightgbm"
     explain: bool = True
 
+class LabRequest(BaseModel):
+    scenario: Literal["normal", "burst", "failed_requests", "large_payload"]
+    model: Literal["lightgbm", "randomforest"] = "lightgbm"
+
 @app.on_event("startup")
 def startup():
     global arduino
@@ -95,6 +99,49 @@ def ml_predict(req: MLRequest):
     result = upstream("POST", "/predict", json=payload)
     event = save_prediction(result, "ciciot2023-feature-input")
     return {"inference":result,"sentinel_event":event}
+
+def build_lab_features(scenario: str) -> dict[str, float]:
+    """Build a documented 20-field synthetic flow profile from a bounded lab scenario.
+
+    These are HTTP-scenario-derived approximations, not packet-captured CIC-IoT flows.
+    TCP flags and LLC values unavailable at the HTTP layer are conservatively zeroed.
+    """
+    profiles = {
+        "normal": {"sizes": [220, 260, 240, 280, 230, 250, 270, 240, 260, 230, 250, 280, 240, 260, 250], "gaps": [0.8, 1.0, 0.9, 1.1, 0.8, 1.0, 0.9, 1.1, 0.8, 1.0, 0.9, 1.1, 0.8, 1.0]},
+        "burst": {"sizes": [240] * 25, "gaps": [0.1] * 24},
+        "failed_requests": {"sizes": [180] * 10, "gaps": [0.25] * 9},
+        "large_payload": {"sizes": [4350], "gaps": []},
+    }
+    p = profiles[scenario]
+    sizes, gaps = p["sizes"], p["gaps"]
+    total = float(sum(sizes))
+    duration = float(sum(gaps)) if gaps else 0.001
+    avg = total / len(sizes)
+    variance = sum((x - avg) ** 2 for x in sizes) / len(sizes)
+    std = variance ** 0.5
+    iat = (duration / len(gaps) * 1_000_000) if gaps else 0.0
+    return {
+        "Number": float(len(sizes)), "Weight": total / max(duration, 0.001),
+        "Duration": duration, "IAT": iat, "urg_count": 0.0,
+        "rst_count": 0.0, "Magnitue": (avg ** 2 + std ** 2) ** 0.5,
+        "Variance": variance, "Tot size": total, "Max": float(max(sizes)),
+        "AVG": avg, "Min": float(min(sizes)), "IPv": 4.0, "LLC": 0.0,
+        "flow_duration": duration * 1_000_000, "Tot sum": total,
+        "Protocol Type": 6.0, "Radius": std, "Std": std, "TCP": 1.0,
+    }
+
+@app.post("/lab/run")
+def run_lab(req: LabRequest):
+    features = build_lab_features(req.scenario)
+    payload = {"dataset": "ciciot2023", "model": req.model, "features": features,
+               "explain": False, "xai_method": "lime", "confidence_threshold": 0.85}
+    result = upstream("POST", "/predict", json=payload)
+    event = save_prediction(result, "attack-lab-synthetic-http-flow")
+    event["scenario"] = req.scenario
+    event["feature_source"] = "synthetic-http-derived"
+    return {"scenario": req.scenario, "features": features,
+            "feature_note": "Synthetic HTTP-derived approximations; not packet-captured CIC-IoT-2023 features.",
+            "inference": result, "sentinel_event": event}
 
 @app.get("/alerts")
 def get_alerts():
