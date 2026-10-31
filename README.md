@@ -84,7 +84,9 @@ Stop with Ctrl+C. The adapter groups packets into bidirectional 10-second flows 
 
 **Critical model limitation:** this is a best-effort mapping, not the original CIC-IoT-2023 flow extraction code. In particular, fields such as `Weight`, `Number`, `Magnitue`, and `Header_Length` may not have the same definitions or units as the model's training data. The provider API applies its stored scaler, but that does not make mismatched feature semantics valid. Use capture-only mode first; predictions from `--infer` are experimental and must not be treated as validated intrusion alerts. A production-quality IDS requires reproducing the provider's exact feature extraction pipeline and validating it against labelled data.
 
-The API now accepts an optional `source` field on `/ml/predict` so the dashboard can distinguish live-capture experiments from other feature submissions. Unknown model labels are marked `unclassified` rather than automatically being treated as attacks.
+The API accepts an optional `source` field on `/ml/predict`. Predictions submitted with a `live-wifi-capture*` source are recorded as `unclassified` diagnostics only: they do not count as suspicious/normal events and cannot trigger the Arduino. The raw model output is retained for debugging. This safety guard prevents unvalidated packet-derived inputs from becoming false security alerts.
+
+**Validation status:** the 20 field names and request shape match the provider's documented CIC-IoT-2023 interface, and the provider applies its saved scaler. However, our live adapter still does not reproduce the dataset's original per-flow feature extraction semantics, directionality, packet accounting, or timing definitions. Schema-name checks and finite-number checks cannot validate those semantics. Therefore `--infer` is useful only to test API connectivity/model behavior; it is not a valid live IDS classifier. Do not use these outputs as evidence of attacks or detection accuracy.
 
 ## Safety
 Only test systems you own or are explicitly authorized to test. This Attack Lab is deliberately limited to loopback traffic on your own machine.
