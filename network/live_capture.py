@@ -33,6 +33,12 @@ from scapy.arch.windows import get_windows_if_list
 WINDOW_SECONDS = 10.0
 MIN_PACKETS = 3
 API_TIMEOUT = 20
+CICIOT_FEATURES = (
+    "Number", "Weight", "Duration", "IAT", "urg_count", "rst_count",
+    "syn_count", "ack_flag_number", "psh_flag_number", "Header_Length",
+    "flow_duration", "Variance", "Std", "Tot size", "Tot sum", "Magnitue",
+    "Rate", "Srate", "HTTPS", "Max",
+)
 
 
 @dataclass
@@ -138,7 +144,7 @@ def main():
     parser = argparse.ArgumentParser(description="SentinelIoT live Wi-Fi packet capture")
     parser.add_argument("--interface", default="Wi-Fi", help="Windows adapter name (default: Wi-Fi)")
     parser.add_argument("--api", default="https://iot-project-avq0.onrender.com")
-    parser.add_argument("--infer", action="store_true", help="Submit experimental flow feature estimates to ML")
+    parser.add_argument("--infer", action="store_true", help="Submit UNVALIDATED packet-derived estimates for diagnostic model output only (not alerts)")
     parser.add_argument("--window", type=float, default=WINDOW_SECONDS, help="Flow aggregation window in seconds")
     parser.add_argument("--min-packets", type=int, default=MIN_PACKETS)
     parser.add_argument("--model", choices=("lightgbm", "randomforest"), default="lightgbm")
@@ -152,7 +158,7 @@ def main():
     last_flush = time.monotonic()
     counts = {"packets": 0, "flows": 0, "submitted": 0, "errors": 0}
     print(f"Capturing {args.interface} ({iface})")
-    print("Mode:", "EXPERIMENTAL ML inference enabled" if args.infer else "capture-only (no model calls)")
+    print("Mode:", "EXPERIMENTAL diagnostic inference (predictions are not validated alerts)" if args.infer else "capture-only (no model calls)")
     print("Flow window:", args.window, "seconds. Ctrl+C to stop.")
 
     def on_packet(packet):
@@ -176,6 +182,15 @@ def main():
                 if len(item.sizes) < args.min_packets:
                     continue
                 features = item.features()
+                if tuple(features.keys()) != CICIOT_FEATURES:
+                    counts["errors"] += 1
+                    print("  ML skipped: feature names/order do not match the expected CIC-IoT-2023 schema")
+                    continue
+                if not all(isinstance(value, (int, float)) and value == value and abs(value) != float("inf")
+                           for value in features.values()):
+                    counts["errors"] += 1
+                    print("  ML skipped: non-finite feature value")
+                    continue
                 counts["flows"] += 1
                 print(f"FLOW {counts['flows']}: {flow_key[0]} packets={len(item.sizes)} "
                       f"bytes={int(features['Tot sum'])} duration={features['Duration']:.3f}s")
@@ -187,7 +202,8 @@ def main():
                         response.raise_for_status()
                         result = response.json().get("inference", {})
                         counts["submitted"] += 1
-                        print("  ML:", result.get("prediction"), "confidence=", result.get("confidence"),
+                        print("  MODEL OUTPUT (UNVALIDATED; NOT AN ALERT):",
+                              result.get("prediction"), "confidence=", result.get("confidence"),
                               "latency_ms=", result.get("latency_ms"))
                     except requests.RequestException as exc:
                         counts["errors"] += 1
