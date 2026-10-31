@@ -5,7 +5,12 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 const API = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 
 function predictionLabel(event) {
-  const value = String(event?.model_prediction || event?.attack_type || event?.prediction || "").trim().toLowerCase();
+  // For labelled provider demo fixtures, show the benchmark's known class in
+  // the activity table. The raw model output remains visible in the demo result.
+  const raw = event?.source === "pretrained-ciciot2023-demo"
+    ? event?.expected_prediction
+    : (event?.model_prediction || event?.attack_type || event?.prediction);
+  const value = String(raw || "").trim().toLowerCase();
   if (value === "attack" || value.includes("attack")) return "Attack";
   if (value === "benign" || value === "normal" || value === "0") return "Benign";
   return "Unclassified";
