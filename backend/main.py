@@ -28,6 +28,7 @@ class MLRequest(BaseModel):
     features: dict[str, float]
     model: Literal["lightgbm","randomforest"] = "lightgbm"
     explain: bool = True
+    source: str = "ciciot2023-feature-input"
 
 class LabRequest(BaseModel):
     scenario: Literal["normal", "burst", "failed_requests", "large_payload"]
@@ -67,15 +68,19 @@ def upstream(method: str, path: str, **kwargs):
 
 def save_prediction(result: dict, source: str):
     prediction = str(result.get("prediction", "Unknown"))
-    suspicious = prediction.strip().lower() not in {"benign", "normal", "0", "false"}
+    label = prediction.strip().lower()
+    is_benign = label in {"benign", "normal", "0", "false"} or label.startswith("benign")
+    is_attack = label == "attack" or "attack" in label
+    status = "normal" if is_benign else "suspicious" if is_attack else "unclassified"
     event = {"timestamp": datetime.now(timezone.utc).isoformat(), "source": source,
-             "scenario": "pretrained-ml-inference", "status": "suspicious" if suspicious else "normal",
+             "scenario": "pretrained-ml-inference", "status": status,
              "attack_type": prediction, "confidence": result.get("confidence"),
              "latency_ms": result.get("latency_ms"), "detector": "pretrained-ciciot2023",
              "model": result.get("model", "lightgbm"), "feature_count": result.get("feature_count")}
     events.appendleft(event)
     try:
-        notify_arduino("suspicious" if suspicious else "normal")
+        if status in {"suspicious", "normal"}:
+            notify_arduino(status)
     except Exception as exc:
         event["arduino_error"] = str(exc)
     return event
@@ -104,7 +109,7 @@ def ml_predict(req: MLRequest):
     payload = {"dataset":"ciciot2023","model":req.model,"features":req.features,
                "explain":req.explain,"xai_method":"lime","confidence_threshold":0.85}
     result = upstream("POST", "/predict", json=payload)
-    event = save_prediction(result, "ciciot2023-feature-input")
+    event = save_prediction(result, req.source)
     return {"inference":result,"sentinel_event":event}
 
 def build_lab_features(scenario: str) -> dict[str, float]:
