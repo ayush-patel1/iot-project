@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Cpu, Download, Radio, RefreshCw, ShieldCheck, ShieldAlert, Wifi } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
