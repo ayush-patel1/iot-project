@@ -6,6 +6,7 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Literal
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 try:
@@ -14,6 +15,13 @@ except ImportError:
     serial = None
 
 app = FastAPI(title="SentinelIoT API", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 events: deque[dict] = deque(maxlen=500)
 serial_lock = threading.Lock()
 arduino = None
