@@ -14,6 +14,7 @@ function Stat({ label, value, hint, icon: Icon, tone = "blue" }) {
 export default function App() {
   const [page, setPage] = useState("overview");
   const [health, setHealth] = useState(null);
+  const [deviceTelemetry, setDeviceTelemetry] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState({ events: 0, normal: 0, suspicious: 0 });
   const [error, setError] = useState("");
@@ -25,11 +26,11 @@ export default function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [h, a, s] = await Promise.all([
-        fetch(`${API}/health`), fetch(`${API}/alerts`), fetch(`${API}/stats`)
+      const [h, a, s, d] = await Promise.all([
+        fetch(`${API}/health`), fetch(`${API}/alerts`), fetch(`${API}/stats`), fetch(`${API}/device/telemetry`)
       ]);
-      if (!h.ok || !a.ok || !s.ok) throw new Error("API returned an error");
-      setHealth(await h.json()); setAlerts(await a.json()); setStats(await s.json()); setError("");
+      if (!h.ok || !a.ok || !s.ok || !d.ok) throw new Error("API returned an error");
+      setHealth(await h.json()); setAlerts(await a.json()); setStats(await s.json()); setDeviceTelemetry(await d.json()); setError("");
     } catch {
       setHealth(null); setError("Backend unavailable. Start FastAPI at 127.0.0.1:8000.");
     }
@@ -202,6 +203,11 @@ export default function App() {
           <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino Uno status</h2><p>USB serial hardware bridge</p></div><Cpu size={19}/></div>
             <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{health?.arduino_connected ? "Serial connection active" : "Not connected to hosted backend"}</span></div>
             <div className="device-meta"><span>Backend status</span><b>{health?.status || "Unknown"}</b></div>
+            <div className="device-meta"><span>Device telemetry</span><b>{deviceTelemetry?.connected ? "Receiving" : "Waiting for device"}</b></div>
+            <div className="device-meta"><span>Device ID</span><b>{deviceTelemetry?.device_id || "—"}</b></div>
+            <div className="device-meta"><span>Uptime</span><b>{deviceTelemetry?.uptime_ms != null ? `${Math.floor(deviceTelemetry.uptime_ms / 1000)} sec` : "—"}</b></div>
+            <div className="device-meta"><span>Board LED</span><b>{deviceTelemetry?.led_state || "—"}</b></div>
+            <div className="device-meta"><span>Last received</span><b>{deviceTelemetry?.received_at ? new Date(deviceTelemetry.received_at).toLocaleTimeString() : "—"}</b></div>
             <div className="device-meta"><span>Serial protocol</span><b>USB · 9600 baud</b></div>
             <div className="device-meta"><span>Alert commands</span><b>A = LED ON · N = LED OFF</b></div>
             <div className="muted-note">Render runs remotely and cannot access a USB Arduino attached to your laptop. A local Python agent is required to relay ML alerts to the board.</div>
