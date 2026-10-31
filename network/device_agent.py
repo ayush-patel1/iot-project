@@ -44,8 +44,10 @@ def main():
                         if not event_id or event_id in seen:
                             continue
                         seen.add(event_id)
-                        board.write(b"A" if event.get("status") == "suspicious" else b"N")
-                        print("Alert relayed:", event.get("attack_type"), event.get("status"))
+                        status = event.get("status")
+                        if status in {"suspicious", "normal"}:
+                            board.write(b"A" if status == "suspicious" else b"N")
+                            print("Alert relayed:", event.get("attack_type"), status)
                     if len(seen) > 2000:
                         seen.clear()
                     last_poll = now
