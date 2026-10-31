@@ -105,3 +105,29 @@ footer{text-align:center;color:#9aa5b5;font-size:10px;padding:20px 0 0}
 .architecture-step b,.architecture-step small{display:block}
 .architecture-step b{font-size:12px;color:#31435e;margin:2px 0 5px}
 .architecture-step small{font-size:10px;color:#8491a4;line-height:1.5}
+
+
+.lab-warning{display:flex;gap:12px;align-items:flex-start;padding:15px 17px;margin-bottom:16px;border:1px solid #f0dfbd;border-radius:12px;background:#fff9ed;color:#a36b19}
+.lab-warning>svg{flex-shrink:0;margin-top:1px}
+.lab-warning b,.lab-warning span{display:block}
+.lab-warning b{font-size:12px;margin-bottom:4px;color:#875915}
+.lab-warning span{font-size:11px;line-height:1.55;color:#8b7859}
+.lab-setup{margin-bottom:17px}
+.lab-terminal{display:flex;flex-direction:column;gap:8px;padding:13px 15px;margin:10px 0;border-radius:10px;background:#17243b;color:#e6eef8}
+.lab-terminal span{font-size:9px;letter-spacing:1px;color:#9db2cf;font-weight:800}
+.lab-terminal code{font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;color:#d8f4ec}
+.lab-hint{font-size:10px;color:#77869b;margin:12px 0 0;line-height:1.6}
+.lab-hint kbd{padding:2px 5px;border:1px solid #d9e0ea;border-radius:4px;background:#f7f9fc;color:#52627a}
+.lab-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.lab-card{display:flex;flex-direction:column;align-items:flex-start;min-height:205px}
+.lab-card-top{display:flex;justify-content:space-between;align-items:center;width:100%;gap:8px}
+.lab-kind,.lab-local{font-size:9px;font-weight:800;border-radius:20px;padding:5px 8px}
+.lab-kind.good{background:#eaf8f2;color:#16865f}
+.lab-kind.warn{background:#fff5e5;color:#a36b19}
+.lab-kind.blue{background:#edf4ff;color:#2867d7}
+.lab-local{background:#f3f5f8;color:#78869a;font-weight:600}
+.lab-card h3{font-family:Manrope,sans-serif;font-size:14px;color:#263954;margin:16px 0 6px}
+.lab-card p{font-size:11px;color:#77869b;line-height:1.55;margin:0 0 13px;flex:1}
+.lab-command{display:block;width:100%;padding:10px;border:1px solid #e8edf4;border-radius:8px;background:#f8fafc;color:#52627a;font-size:10px;overflow-wrap:anywhere;white-space:normal}
+.lab-copy{margin-top:10px}
+@media(max-width:760px){.lab-grid{grid-template-columns:1fr}.lab-card{min-height:0}}
