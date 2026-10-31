@@ -18,7 +18,8 @@ export default function App() {
   const [stats, setStats] = useState({ events: 0, normal: 0, suspicious: 0 });
   const [error, setError] = useState("");
   const [mlBusy, setMlBusy] = useState(false);
-  const [mlResult, setMlResult] = useState(null);\n  const [copiedScenario, setCopiedScenario] = useState("");
+  const [mlResult, setMlResult] = useState(null);
+  const [copiedScenario, setCopiedScenario] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -55,7 +56,13 @@ export default function App() {
     confidence: Math.round((x.confidence || 0) * 100)
   })), [alerts]);
 
-  async function copyCommand(scenario) {\n    const command = `python network/traffic_generator.py --scenario ${scenario}`;\n    try { await navigator.clipboard.writeText(command); setCopiedScenario(scenario); }\n    catch { setError("Clipboard access unavailable. Copy the command shown in the Attack Lab manually."); }\n  }\n\n  function exportAlerts() {
+  async function copyCommand(scenario) {
+    const command = `python network/traffic_generator.py --scenario ${scenario}`;
+    try { await navigator.clipboard.writeText(command); setCopiedScenario(scenario); }
+    catch { setError("Clipboard access unavailable. Copy the command shown in the Attack Lab manually."); }
+  }
+
+  function exportAlerts() {
     const blob = new Blob([JSON.stringify(alerts, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob); const a = document.createElement("a");
     a.href = url; a.download = "sentineliot-alerts.json"; a.click(); URL.revokeObjectURL(url);
@@ -66,7 +73,8 @@ export default function App() {
       <div className="brand"><div className="brand-mark"><ShieldCheck size={23}/></div><div><b>SENTINEL<span>IoT</span></b><small>THREAT MONITOR</small></div></div>
       <div className="side-label">WORKSPACE</div>
       <button className={`nav-item ${page === "overview" ? "active" : ""}`} onClick={() => setPage("overview")}><Activity size={17}/> Overview</button>
-      <button className={`nav-item ${page === "traffic" ? "active" : ""}`} onClick={() => setPage("traffic")}><Radio size={17}/> Traffic monitor</button>\n      <button className={`nav-item ${page === "lab" ? "active" : ""}`} onClick={() => setPage("lab")}><FlaskConical size={17}/> Attack Lab</button>
+      <button className={`nav-item ${page === "traffic" ? "active" : ""}`} onClick={() => setPage("traffic")}><Radio size={17}/> Traffic monitor</button>
+      <button className={`nav-item ${page === "lab" ? "active" : ""}`} onClick={() => setPage("lab")}><FlaskConical size={17}/> Attack Lab</button>
       <button className={`nav-item ${page === "alerts" ? "active" : ""}`} onClick={() => setPage("alerts")}><ShieldAlert size={17}/> Threat alerts</button>
       <button className={`nav-item ${page === "device" ? "active" : ""}`} onClick={() => setPage("device")}><Cpu size={17}/> Device endpoint</button>
       <div className="sidebar-bottom"><div className="live-dot"/> Local monitoring mode <small>Prototype v0.1</small></div>
