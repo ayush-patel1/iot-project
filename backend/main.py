@@ -7,7 +7,7 @@ from typing import Literal
 import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 try:
     import serial
 except ImportError:
@@ -22,13 +22,6 @@ app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credenti
 events: deque[dict] = deque(maxlen=500)
 serial_lock = threading.Lock()
 arduino = None
-
-class DemoRequest(BaseModel):
-    source: str = Field(default="local-demo", max_length=100)
-    scenario: Literal["normal","burst","failed_requests","large_payload"]
-    packet_count: int = Field(default=1, ge=1, le=1000000)
-    byte_count: int = Field(default=0, ge=0, le=1000000000)
-    duration_seconds: float = Field(default=1.0, gt=0, le=86400)
 
 class MLRequest(BaseModel):
     features: dict[str, float]
@@ -63,7 +56,7 @@ def upstream(method: str, path: str, **kwargs):
 
 def save_prediction(result: dict, source: str):
     prediction = str(result.get("prediction", "Unknown"))
-    suspicious = prediction.lower() == "attack"
+    suspicious = prediction.strip().lower() not in {"benign", "normal", "0", "false"}
     event = {"timestamp": datetime.now(timezone.utc).isoformat(), "source": source,
              "scenario": "pretrained-ml-inference", "status": "suspicious" if suspicious else "normal",
              "attack_type": prediction, "confidence": result.get("confidence"),
@@ -78,7 +71,7 @@ def save_prediction(result: dict, source: str):
 
 @app.get("/health")
 def health():
-    return {"status":"ok","service":"SentinelIoT","detector":"demo-rules + hosted-pretrained-ml",
+    return {"status":"ok","service":"SentinelIoT","detector":"hosted-pretrained-ml",
             "arduino_connected":arduino is not None,"ml_model_configured":True,"ml_model_provider":MODEL_API}
 
 @app.get("/ml/health")
@@ -102,23 +95,6 @@ def ml_predict(req: MLRequest):
     result = upstream("POST", "/predict", json=payload)
     event = save_prediction(result, "ciciot2023-feature-input")
     return {"inference":result,"sentinel_event":event}
-
-@app.post("/demo/analyze")
-def analyze(req: DemoRequest):
-    """Rule-based local demo; distinct from the pretrained ML classifier."""
-    rate = req.packet_count / req.duration_seconds
-    suspicious = req.scenario != "normal" or rate > 10
-    status = "suspicious" if suspicious else "normal"
-    event = {"timestamp":datetime.now(timezone.utc).isoformat(),"source":req.source,
-             "scenario":req.scenario,"packet_count":req.packet_count,"byte_count":req.byte_count,
-             "packet_rate":round(rate,2),"status":status,"detector":"demo-rule",
-             "attack_type":"anomaly-demo" if suspicious else "BENIGN"}
-    events.appendleft(event)
-    try:
-        notify_arduino(status)
-    except Exception as exc:
-        raise HTTPException(503, f"Arduino write failed: {exc}") from exc
-    return event
 
 @app.get("/alerts")
 def get_alerts():
