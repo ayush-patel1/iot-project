@@ -66,20 +66,32 @@ def upstream(method: str, path: str, **kwargs):
     except (requests.RequestException, ValueError) as exc:
         raise HTTPException(502, f"Pretrained model API unavailable or returned invalid JSON: {exc}") from exc
 
-def save_prediction(result: dict, source: str):
+def normalize_prediction(value: str) -> str:
+    label = value.strip().lower()
+    if label in {"benign", "normal", "0", "false"} or label.startswith("benign"):
+        return "Benign"
+    if label == "attack" or "attack" in label:
+        return "Attack"
+    return "Unclassified"
+
+
+def save_prediction(result: dict, source: str, expected_prediction: str | None = None):
     prediction = str(result.get("prediction", "Unknown"))
-    label = prediction.strip().lower()
-    is_benign = label in {"benign", "normal", "0", "false"} or label.startswith("benign")
-    is_attack = label == "attack" or "attack" in label
+    model_class = normalize_prediction(prediction)
 
     # Packet-derived live features are not yet validated against the training pipeline.
     # Preserve the model output for diagnostics, but never create an alert or signal Arduino.
     experimental_live = source.startswith("live-wifi-capture")
+    expected_class = normalize_prediction(expected_prediction) if expected_prediction else None
+    test_result = ("not-comparable" if not expected_class or model_class == "Unclassified"
+                   else "pass" if model_class == expected_class else "mismatch")
     status = ("unclassified" if experimental_live else
-              "normal" if is_benign else "suspicious" if is_attack else "unclassified")
+              "normal" if model_class == "Benign" else
+              "suspicious" if model_class == "Attack" else "unclassified")
     event = {"timestamp": datetime.now(timezone.utc).isoformat(), "source": source,
              "scenario": "pretrained-ml-inference", "status": status,
-             "attack_type": prediction, "model_prediction": prediction,
+             "attack_type": prediction, "model_prediction": model_class,
+             "expected_prediction": expected_class, "test_result": test_result,
              "confidence": result.get("confidence"),
              "latency_ms": result.get("latency_ms"), "detector": "pretrained-ciciot2023",
              "model": result.get("model", "lightgbm"), "feature_count": result.get("feature_count")}
@@ -88,9 +100,15 @@ def save_prediction(result: dict, source: str):
             "Experimental packet-derived features are not validated against the model training pipeline; "
             "prediction is informational only and is not an intrusion alert."
         )
+    if expected_class and test_result == "mismatch":
+        event["classification_note"] = (
+            f"Scenario expected {expected_class}, but the model predicted {model_class}. "
+            "This is a test mismatch, not a confirmed real-world intrusion."
+        )
     events.appendleft(event)
     try:
-        if not experimental_live and status in {"suspicious", "normal"}:
+        # Do not let a failed synthetic test trigger a physical Arduino alarm.
+        if not experimental_live and test_result != "mismatch" and status in {"suspicious", "normal"}:
             notify_arduino(status)
     except Exception as exc:
         event["arduino_error"] = str(exc)
@@ -110,7 +128,8 @@ def ml_demo(sample_idx: int, model: Literal["lightgbm","randomforest"] = "lightg
     if sample_idx < 0 or sample_idx > 9:
         raise HTTPException(400, "sample_idx must be between 0 and 9")
     result = upstream("GET", "/demo/ciciot2023", params={"sample_idx":sample_idx,"model":model})
-    event = save_prediction(result, "pretrained-ciciot2023-demo")
+    expected = "Benign" if sample_idx <= 4 else "Attack"
+    event = save_prediction(result, "pretrained-ciciot2023-demo", expected)
     return {"inference":result,"sentinel_event":event}
 
 @app.post("/ml/predict")
@@ -159,7 +178,8 @@ def run_lab(req: LabRequest):
     payload = {"dataset": "ciciot2023", "model": req.model, "features": features,
                "explain": False, "xai_method": "lime", "confidence_threshold": 0.85}
     result = upstream("POST", "/predict", json=payload)
-    event = save_prediction(result, "attack-lab-synthetic-http-flow")
+    expected = "Benign" if req.scenario == "normal" else "Attack"
+    event = save_prediction(result, "attack-lab-synthetic-http-flow", expected)
     event["scenario"] = req.scenario
     event["feature_source"] = "synthetic-http-derived"
     return {"scenario": req.scenario, "features": features,
