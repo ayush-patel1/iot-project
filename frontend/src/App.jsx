@@ -15,7 +15,6 @@ export default function App() {
   const [health, setHealth] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState({ events: 0, normal: 0, suspicious: 0 });
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [mlBusy, setMlBusy] = useState(false);
   const [mlResult, setMlResult] = useState(null);
@@ -38,22 +37,6 @@ export default function App() {
     return () => clearInterval(timer);
   }, [refresh]);
 
-  async function runScenario(scenario) {
-    setBusy(true);
-    try {
-      const packetCount = scenario === "normal" ? 4 : scenario === "burst" ? 35 : scenario === "failed_requests" ? 12 : 2;
-      const byteCount = scenario === "large_payload" ? 4096 : packetCount * 180;
-      const duration = scenario === "normal" ? 8 : scenario === "burst" ? 2 : 4;
-      const response = await fetch(`${API}/demo/analyze`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario, packet_count: packetCount, byte_count: byteCount, duration_seconds: duration })
-      });
-      if (!response.ok) throw new Error("Scenario request failed");
-      await refresh();
-    } catch (e) { setError(e.message); }
-    finally { setBusy(false); }
-  }
-
   async function runMLDemo(sampleIdx) {
     setMlBusy(true); setError("");
     try {
@@ -68,7 +51,7 @@ export default function App() {
 
   const chartData = useMemo(() => [...alerts].slice(0, 12).reverse().map((x, i) => ({
     name: new Date(x.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-    rate: x.packet_rate || 0
+    confidence: Math.round((x.confidence || 0) * 100)
   })), [alerts]);
 
   function exportAlerts() {
@@ -94,17 +77,8 @@ export default function App() {
       </header>
 
       {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
-      <div className="demo-banner"><div><b>Controlled demo console</b><span>Generate test events locally. These rule-based events are not ML classifications.</span></div>
-        <div className="demo-buttons">
-          <button disabled={busy} onClick={() => runScenario("normal")} className="btn subtle">Normal traffic</button>
-          <button disabled={busy} onClick={() => runScenario("burst")} className="btn warning">Traffic burst</button>
-          <button disabled={busy} onClick={() => runScenario("failed_requests")} className="btn danger">Failed requests</button>
-          <button disabled={busy} onClick={() => runScenario("large_payload")} className="btn subtle">Large payload</button>
-        </div>
-      </div>
-
       <div className="demo-banner">
-        <div><b>Pretrained CIC-IoT-2023 model</b><span>Calls the hosted LightGBM classifier with its preloaded benchmark samples. Samples 0–4 are benign; 5–9 are attack examples.</span></div>
+        <div><b>ML detection · CIC-IoT-2023</b><span>Run preloaded benchmark samples through the hosted LightGBM classifier. Samples 0–4 are benign examples; samples 5–9 are attack examples. This validates model inference, not live network capture.</span></div>
         <div className="demo-buttons">
           <button disabled={mlBusy} onClick={() => runMLDemo(0)} className="btn subtle">Run benign ML sample</button>
           <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">Run attack ML sample</button>
@@ -115,14 +89,14 @@ export default function App() {
 
       <div className="stats-grid">
         <Stat label="Events processed" value={stats.events ?? 0} hint="In-memory session history" icon={Activity}/>
-        <Stat label="Normal events" value={stats.normal ?? 0} hint="Rule-based normal" icon={ShieldCheck} tone="green"/>
-        <Stat label="Suspicious events" value={stats.suspicious ?? 0} hint="Requires investigation" icon={AlertTriangle} tone="red"/>
+        <Stat label="Normal events" value={stats.normal ?? 0} hint="ML-classified benign" icon={ShieldCheck} tone="green"/>
+        <Stat label="Suspicious events" value={stats.suspicious ?? 0} hint="ML-classified attack" icon={AlertTriangle} tone="red"/>
         <Stat label="Arduino endpoint" value={health?.arduino_connected ? "Connected" : "Not connected"} hint="USB serial bridge" icon={Cpu} tone="purple"/>
       </div>
 
       <div className="content-grid">
-        <article className="panel chart-panel"><div className="panel-heading"><div><h2>Traffic event rate</h2><p>Packets per second · recent demo events</p></div><span className="tag">LIVE REFRESH</span></div>
-          {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="rate" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)"/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a scenario above to populate the chart.</span></div>}
+        <article className="panel chart-panel"><div className="panel-heading"><div><h2>ML confidence trend</h2><p>Prediction confidence · recent model inferences</p></div><span className="tag">LIVE REFRESH</span></div>
+          {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)"/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run an ML sample above to populate the chart.</span></div>}
         </article>
         <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino endpoint</h2><p>USB-connected physical response</p></div><Cpu size={19}/></div>
           <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{health?.arduino_connected ? "Serial connection active" : "Waiting for serial connection"}</span></div>
@@ -131,12 +105,12 @@ export default function App() {
         </article>
       </div>
 
-      <article className="panel table-panel"><div className="panel-heading"><div><h2>Recent detection events</h2><p>Latest rule-based and pretrained-model results</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
-        <div className="table-wrap"><table><thead><tr><th>TIME</th><th>SCENARIO</th><th>PACKETS</th><th>RATE</th><th>DETECTOR</th><th>STATUS</th></tr></thead><tbody>
-          {alerts.length ? alerts.slice(0, 8).map((a, i) => <tr key={a.timestamp + i}><td>{new Date(a.timestamp).toLocaleTimeString()}</td><td>{a.scenario}</td><td>{a.packet_count ?? "—"}</td><td>{a.packet_rate != null ? `${a.packet_rate} pkt/s` : "—"}</td><td><span className="detector">{a.detector || "demo-rule"}</span></td><td><span className={a.status === "suspicious" ? "event-badge bad" : "event-badge good"}>{a.status}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No detection events recorded yet.</td></tr>}
+      <article className="panel table-panel"><div className="panel-heading"><div><h2>Recent ML detections</h2><p>Latest pretrained model predictions</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
+        <div className="table-wrap"><table><thead><tr><th>TIME</th><th>PREDICTION</th><th>CONFIDENCE</th><th>MODEL</th><th>LATENCY</th><th>STATUS</th></tr></thead><tbody>
+          {alerts.length ? alerts.slice(0, 8).map((a, i) => <tr key={a.timestamp + i}><td>{new Date(a.timestamp).toLocaleTimeString()}</td><td>{a.attack_type || a.scenario}</td><td>{a.confidence != null ? `${Math.round(a.confidence * 100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={a.status === "suspicious" ? "event-badge bad" : "event-badge good"}>{a.status}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No detection events recorded yet.</td></tr>}
         </tbody></table></div>
       </article>
-      <footer>SentinelIoT · Educational defensive prototype · No external network traffic is generated by the demo controls.</footer>
+      <footer>SentinelIoT · Educational defensive prototype · Benchmark samples are sent to the pretrained ML model; live traffic capture is not enabled yet.</footer>
     </section>
   </main>;
 }
