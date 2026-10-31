@@ -12,6 +12,7 @@ function Stat({ label, value, hint, icon: Icon, tone = "blue" }) {
 }
 
 export default function App() {
+  const [page, setPage] = useState("overview");
   const [health, setHealth] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState({ events: 0, normal: 0, suspicious: 0 });
@@ -64,18 +65,19 @@ export default function App() {
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><ShieldCheck size={23}/></div><div><b>SENTINEL<span>IoT</span></b><small>THREAT MONITOR</small></div></div>
       <div className="side-label">WORKSPACE</div>
-      <div className="nav-item active"><Activity size={17}/> Overview</div>
-      <div className="nav-item"><Radio size={17}/> Traffic monitor</div>
-      <div className="nav-item"><ShieldAlert size={17}/> Threat alerts</div>
-      <div className="nav-item"><Cpu size={17}/> Device endpoint</div>
+      <button className={`nav-item ${page === "overview" ? "active" : ""}`} onClick={() => setPage("overview")}><Activity size={17}/> Overview</button>
+      <button className={`nav-item ${page === "traffic" ? "active" : ""}`} onClick={() => setPage("traffic")}><Radio size={17}/> Traffic monitor</button>
+      <button className={`nav-item ${page === "alerts" ? "active" : ""}`} onClick={() => setPage("alerts")}><ShieldAlert size={17}/> Threat alerts</button>
+      <button className={`nav-item ${page === "device" ? "active" : ""}`} onClick={() => setPage("device")}><Cpu size={17}/> Device endpoint</button>
       <div className="sidebar-bottom"><div className="live-dot"/> Local monitoring mode <small>Prototype v0.1</small></div>
     </aside>
 
     <section className="main">
-      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / OVERVIEW</div><h1>Network security overview</h1><p>Monitor traffic patterns, inspect alerts and test the Arduino response.</p></div>
+      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor ML detections and system health.",traffic:"Inspect benchmark inference activity and test the pretrained model.",alerts:"Review and export suspicious and benign ML predictions.",device:"Check the Arduino bridge status and local hardware setup."})[page]}</p></div>
         <div className="top-actions"><span className={health ? "status-pill online" : "status-pill offline"}><i/> {health ? "API connected" : "API disconnected"}</span><button className="icon-button" onClick={refresh} title="Refresh"><RefreshCw size={17}/></button></div>
       </header>
 
+      {page === "overview" && <>
       {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
       <div className="demo-banner">
         <div><b>ML detection · CIC-IoT-2023</b><span>Run preloaded benchmark samples through the hosted LightGBM classifier. Samples 0–4 are benign examples; samples 5–9 are attack examples. This validates model inference, not live network capture.</span></div>
@@ -111,6 +113,61 @@ export default function App() {
         </tbody></table></div>
       </article>
       <footer>SentinelIoT · Educational defensive prototype · Benchmark samples are sent to the pretrained ML model; live traffic capture is not enabled yet.</footer>
+      </>}
+      {page === "traffic" && <>
+        {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
+        <div className="demo-banner">
+          <div><b>Pretrained CIC-IoT-2023 · LightGBM</b><span>Choose a labelled benchmark sample to send to the hosted classifier. This tests inference against the provider's sample dataset; it does not capture live packets from your network.</span></div>
+          <div className="demo-buttons">
+            <button disabled={mlBusy} onClick={() => runMLDemo(0)} className="btn subtle">Test benign sample</button>
+            <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">Test attack sample</button>
+            <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Test second attack</button>
+          </div>
+          {mlResult && <div className="ml-result"><b>Prediction: {mlResult.prediction}</b><span>Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms · {mlResult.feature_count} features</span></div>}
+        </div>
+        <div className="stats-grid">
+          <Stat label="Samples processed" value={stats.events ?? 0} hint="Since last backend restart" icon={Activity}/>
+          <Stat label="Benign predictions" value={stats.normal ?? 0} hint="Model classified as benign" icon={ShieldCheck} tone="green"/>
+          <Stat label="Attack predictions" value={stats.suspicious ?? 0} hint="Model classified as attack" icon={AlertTriangle} tone="red"/>
+          <Stat label="Inference model" value="LightGBM" hint="Hosted CIC-IoT-2023" icon={Cpu} tone="purple"/>
+        </div>
+        <article className="panel chart-panel"><div className="panel-heading"><div><h2>Prediction confidence</h2><p>Confidence percentage for recent ML samples</p></div><span className="tag">AUTO REFRESH</span></div>
+          {chartData.length ? <ResponsiveContainer width="100%" height={270}><AreaChart data={chartData}><defs><linearGradient id="trafficConfidence" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.24}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#e8edf4" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><YAxis domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><Tooltip/><Area type="monotone" dataKey="confidence" stroke="#269d8a" strokeWidth={2.5} fill="url(#trafficConfidence)"/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No ML samples yet</b><span>Run a sample to see its confidence here.</span></div>}
+        </article>
+        <div className="page-note"><Wifi size={17}/><div><b>Live packet capture is not connected yet</b><span>The current traffic monitor displays model inference results from preloaded CIC-IoT-2023 examples. The next integration is a local packet-capture and flow-feature agent.</span></div></div>
+      </>}
+      {page === "alerts" && <>
+        {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
+        <div className="stats-grid">
+          <Stat label="Total predictions" value={alerts.length} hint="Stored in current backend session" icon={Activity}/>
+          <Stat label="Attack alerts" value={alerts.filter(x=>x.status==="suspicious").length} hint="Classified by ML model" icon={ShieldAlert} tone="red"/>
+          <Stat label="Benign samples" value={alerts.filter(x=>x.status==="normal").length} hint="Classified by ML model" icon={ShieldCheck} tone="green"/>
+          <Stat label="Detection engine" value="LightGBM" hint="CIC-IoT-2023 model" icon={Cpu} tone="purple"/>
+        </div>
+        <article className="panel table-panel"><div className="panel-heading"><div><h2>Detection history</h2><p>ML-generated predictions received by SentinelIoT</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
+          <div className="table-wrap"><table><thead><tr><th>TIME</th><th>CLASSIFICATION</th><th>CONFIDENCE</th><th>MODEL</th><th>LATENCY</th><th>STATUS</th></tr></thead><tbody>
+            {alerts.length ? alerts.map((a,i)=><tr key={a.timestamp+i}><td>{new Date(a.timestamp).toLocaleString()}</td><td>{a.attack_type || a.scenario}</td><td>{a.confidence != null ? `${Math.round(a.confidence*100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={a.status==="suspicious"?"event-badge bad":"event-badge good"}>{a.status}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No ML alerts yet. Run a sample from Traffic monitor.</td></tr>}
+          </tbody></table></div>
+        </article>
+      </>}
+      {page === "device" && <>
+        <div className="content-grid">
+          <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino Uno status</h2><p>USB serial hardware bridge</p></div><Cpu size={19}/></div>
+            <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{health?.arduino_connected ? "Serial connection active" : "Not connected to hosted backend"}</span></div>
+            <div className="device-meta"><span>Backend status</span><b>{health?.status || "Unknown"}</b></div>
+            <div className="device-meta"><span>Serial protocol</span><b>USB · 9600 baud</b></div>
+            <div className="device-meta"><span>Alert commands</span><b>A = LED ON · N = LED OFF</b></div>
+            <div className="muted-note">Render runs remotely and cannot access a USB Arduino attached to your laptop. A local Python agent is required to relay ML alerts to the board.</div>
+          </article>
+          <article className="panel"><div className="panel-heading"><div><h2>Connection architecture</h2><p>How the hardware bridge will work</p></div><span className="tag">NEXT INTEGRATION</span></div>
+            <div className="architecture-step"><span>01</span><div><b>Cloud ML backend</b><small>Runs LightGBM inference and creates an alert.</small></div></div>
+            <div className="architecture-step"><span>02</span><div><b>Local Python agent</b><small>Polls for new alerts and writes serial commands.</small></div></div>
+            <div className="architecture-step"><span>03</span><div><b>Arduino Uno</b><small>Receives A or N and changes the LED state.</small></div></div>
+          </article>
+        </div>
+        <div className="page-note"><AlertTriangle size={17}/><div><b>Hardware is not remotely connected yet</b><span>Do not set ARDUINO_PORT on Render for a board plugged into your personal laptop. The serial process must run locally on that same laptop.</span></div></div>
+      </>}
+
     </section>
   </main>;
 }
