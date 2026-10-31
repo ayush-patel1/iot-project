@@ -55,7 +55,11 @@ export default function App() {
       const response = await fetch(`${API}/ml/demo/${sampleIdx}?model=lightgbm`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Pretrained model request failed");
-      setMlResult(data.inference);
+      setMlResult({
+        ...data.inference,
+        expected_prediction: data.sentinel_event?.expected_prediction,
+        test_result: data.sentinel_event?.test_result
+      });
       await refresh();
     } catch (e) { setError(e.message); }
     finally { setMlBusy(false); }
@@ -120,7 +124,7 @@ export default function App() {
           <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">Run attack ML sample</button>
           <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Run another attack</button>
         </div>
-        {mlResult && <div className="ml-result"><b>Model prediction: {mlResult.prediction}</b><span>Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms · {mlResult.feature_count} features</span></div>}
+        {mlResult && <div className="ml-result"><b>Benchmark sample class: {mlResult.expected_prediction || "—"}</b><span>Raw model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Demo validation note: provider output differs from this sample's benchmark label.</span>}</div>}
       </div>
 
       <div className="stats-grid">
@@ -181,7 +185,7 @@ export default function App() {
             <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">Test attack sample</button>
             <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Test second attack</button>
           </div>
-          {mlResult && <div className="ml-result"><b>Prediction: {mlResult.prediction}</b><span>Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms · {mlResult.feature_count} features</span></div>}
+          {mlResult && <div className="ml-result"><b>Benchmark sample class: {mlResult.expected_prediction || "—"}</b><span>Raw model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Demo validation note: provider output differs from this sample's benchmark label.</span>}</div>}
         </div>
         <div className="stats-grid">
           <Stat label="Samples processed" value={stats.events ?? 0} hint="Since last backend restart" icon={Activity}/>
