@@ -80,7 +80,7 @@ def main():
                             continue
                         status = event.get("status")
                         if status in {"suspicious", "normal"}:
-                            board.write(b"A" if status == "suspicious" else b"N")
+                            board.write((("A" if status == "suspicious" else "N") + "\n").encode("ascii"))
                             print("Validated alert relayed:", status)
                     if len(seen_alerts) > 2000:
                         seen_alerts.clear()
