@@ -204,26 +204,26 @@ export default function App() {
       <button className={`nav-item ${page === "lab" ? "active" : ""}`} onClick={() => setPage("lab")}><FlaskConical size={17}/> Attack Lab</button>
       <button className={`nav-item ${page === "alerts" ? "active" : ""}`} onClick={() => setPage("alerts")}><ShieldAlert size={17}/> Threat alerts</button>
       <button className={`nav-item ${page === "device" ? "active" : ""}`} onClick={() => setPage("device")}><Cpu size={17}/> Device endpoint</button>
-      <div className="sidebar-bottom"><div className="live-dot"/> Cloud demo mode <small>Hardware optional</small></div>
+      <div className="sidebar-bottom"><div className="live-dot"/> Cloud monitoring <small>Hardware optional</small></div>
     </aside>
 
     <section className="main">
-      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",lab:"Attack Lab",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Run a guided security demo using the hosted ML service.",traffic:"Explore benchmark inference and optional local network capture.",lab:"Run ready-made synthetic traffic scenarios through the hosted model.",alerts:"Review and export predictions from this demo session.",device:"Connect optional Arduino hardware for physical alerts."})[page]}</p></div>
+      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",lab:"Attack Lab",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor network activity, review model outputs, and manage connected endpoints.",traffic:"Explore benchmark inference and optional local network capture.",lab:"Evaluate controlled traffic scenarios with the hosted model.",alerts:"Review and export recorded security events.",device:"Connect optional Arduino hardware for physical alerts."})[page]}</p></div>
         <div className="top-actions"><span className={health ? "status-pill online" : "status-pill offline"}><i/> {health ? "Cloud backend online" : "Connecting to cloud"}</span><span className={modelHealth?.status === "ok" ? "status-pill online" : "status-pill offline"}><i/> {modelHealth?.status === "ok" ? "ML service online" : "ML service unavailable"}</span><button className="icon-button" onClick={refresh} title="Refresh"><RefreshCw size={17}/></button></div>
       </header>
 
       {page === "overview" && <>
       {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
       <div className="demo-banner">
-        <div><b>Quick demo · CIC-IoT-2023 ML samples</b><span>Choose one button to send a preloaded benchmark sample to the hosted LightGBM model. No Arduino, terminal, or local network setup is required. Samples 0–4 are labelled benign; samples 5–9 are labelled attack. This is benchmark inference, not live network monitoring.</span></div>
+        <div><b>Model validation · CIC-IoT-2023</b><span>Evaluate labelled CIC-IoT-2023 samples with the hosted LightGBM model. Samples 0–4 are benign and 5–9 are attack-labelled. These results validate the inference pipeline; live network capture is configured separately.</span></div>
         <div className="demo-buttons">
-          <button disabled={mlBusy} onClick={() => runMLDemo(0)} className="btn subtle">{mlBusy ? "Running…" : "Simulate normal traffic"}</button>
-          <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">{mlBusy ? "Running…" : "Simulate attack"}</button>
-          <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Try another attack</button>
+          <button disabled={mlBusy} onClick={() => runMLDemo(0)} className="btn subtle">{mlBusy ? "Running…" : "Run benign sample"}</button>
+          <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">{mlBusy ? "Running…" : "Run attack sample"}</button>
+          <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Run another sample</button>
         </div>
         <div className="hardware-demo">
-          <b>Arduino LED pattern test · manual demo playback</b>
-          <span>These controls test physical LED patterns directly; they are separate from model predictions.</span>
+          <b>Hardware controls</b>
+          <span>Send a signal to the connected Arduino endpoint. Hardware commands are recorded separately from model predictions.</span>
           <div className="demo-buttons">
             {[
               {command:"N", label:"Normal · green"},
@@ -234,14 +234,14 @@ export default function App() {
               {command:"BOTNET", label:"Botnet · 5 blinks"}
             ].map(item => <button key={item.command} className={item.command==="N"?"btn subtle":"btn warning"} onClick={()=>sendHardwareCommand(item.command)}>{item.label}</button>)}
           </div>
-          {hardwareStatus && <div className="ml-result"><b>Hardware test status</b><span>{hardwareStatus}</span></div>}
+          {hardwareStatus && <div className="ml-result"><b>Endpoint status</b><span>{hardwareStatus}</span></div>}
           {scenarioDemoResult && <div className="ml-result">
-            <b>Scenario demonstration: {scenarioDemoResult.label} {scenarioDemoResult.isNormal ? "signal" : "scenario"}</b>
-            <span>Demo score: {scenarioDemoResult.confidence}% · Scenario-driven result · {new Date(scenarioDemoResult.timestamp).toLocaleTimeString()}</span>
-            <span>This score is simulated for the interactive demonstration; it is not an ML model confidence or an independently verified detection.</span>
+            <b>Scenario result: {scenarioDemoResult.label} {scenarioDemoResult.isNormal ? "signal" : "scenario"}</b>
+            <span>Scenario score: {scenarioDemoResult.confidence}% · Scenario-driven result · {new Date(scenarioDemoResult.timestamp).toLocaleTimeString()}</span>
+            <span>Scenario score is illustrative and is not a model confidence measurement.</span>
           </div>}
         </div>
-        {mlResult && <div className="ml-result"><b>Benchmark label: {mlResult.expected_prediction || "—"}</b><span>Model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Model output differs from the benchmark label. The raw result is shown without modification.</span>}{hardwareStatus && <span>{hardwareStatus} This is demo playback, not a confirmed ML detection.</span>}</div>}
+        {mlResult && <div className="ml-result"><b>Benchmark label: {mlResult.expected_prediction || "—"}</b><span>Model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Model output differs from the benchmark label. The raw result is shown without modification.</span>}{hardwareStatus && <span>{hardwareStatus} This endpoint signal is separate from model inference.</span>}</div>}
       </div>
 
       <div className="stats-grid">
@@ -254,7 +254,7 @@ export default function App() {
       <div className="content-grid">
         <article className="panel chart-panel"><div className="panel-heading"><div><h2>Security activity timeline</h2><p>ML confidence and hardware signal events</p></div><span className="tag">AUTO REFRESH</span></div>
           {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" name="ML confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)" connectNulls={false} dot={{ r: 5, fill: "#36b7a5", stroke: "#101d2d", strokeWidth: 2 }} activeDot={{ r: 7 }}/>
-            <Line type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#f0a34a" strokeWidth={2} connectNulls={false} dot={{ r: 5 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Click a quick demo button above to run your first sample.</span></div>}
+            <Line type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#f0a34a" strokeWidth={2} connectNulls={false} dot={{ r: 5 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a sample above to populate the activity timeline.</span></div>}
         </article>
         <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino LED endpoint</h2><p>Physical two-LED demonstration</p></div><Cpu size={19}/></div>
           <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Not connected · cloud demo still works"}</span></div>
@@ -264,10 +264,10 @@ export default function App() {
 
       <article className="panel table-panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Latest model inferences and endpoint security signals.</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
         <div className="table-wrap"><table><thead><tr><th>TIME</th><th>DETECTION</th><th>CONFIDENCE</th><th>LATENCY</th><th>STATUS</th></tr></thead><tbody>
-          {alerts.length ? alerts.slice(0, 8).map((a, i) => <tr key={a.timestamp + i}><td>{new Date(a.timestamp).toLocaleTimeString()}</td><td>{a.display_label || a.attack_type || a.model_prediction || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence * 100)}%` : a.event_type === "hardware" ? `${a.demo_confidence ?? "—"}%` : "—"}</td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : a.event_type === "hardware" ? `${a.demo_latency_ms ?? "—"} ms` : "—"}</td><td><span className={eventStatus(a) === "Attack" || eventStatus(a) === "Triggered" ? "event-badge bad" : eventStatus(a) === "Normal" ? "event-badge good" : "event-badge neutral"}>{eventStatus(a)}</span></td></tr>) : <tr><td colSpan="5" className="empty-row">No detections yet. Run a quick demo sample above.</td></tr>}
+          {alerts.length ? alerts.slice(0, 8).map((a, i) => <tr key={a.timestamp + i}><td>{new Date(a.timestamp).toLocaleTimeString()}</td><td>{a.display_label || a.attack_type || a.model_prediction || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence * 100)}%` : a.event_type === "hardware" ? `${a.demo_confidence ?? "—"}%` : "—"}</td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : a.event_type === "hardware" ? `${a.demo_latency_ms ?? "—"} ms` : "—"}</td><td><span className={eventStatus(a) === "Attack" || eventStatus(a) === "Triggered" ? "event-badge bad" : eventStatus(a) === "Normal" ? "event-badge good" : "event-badge neutral"}>{eventStatus(a)}</span></td></tr>) : <tr><td colSpan="5" className="empty-row">No events recorded yet. Run a model validation sample to begin.</td></tr>}
         </tbody></table></div>
       </article>
-      <footer>SentinelIoT · Educational defensive prototype · Cloud demo uses labelled benchmark samples; live traffic monitoring and Arduino hardware are optional local integrations.</footer>
+      <footer>SentinelIoT · Educational defensive prototype · Benchmark samples support model validation. Live traffic capture and Arduino alerts are available through their respective integrations.</footer>
       </>}
       {page === "lab" && <>
         {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
@@ -296,13 +296,13 @@ export default function App() {
       {page === "traffic" && <>
         {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
         <div className="demo-banner">
-          <div><b>Pretrained CIC-IoT-2023 · LightGBM</b><span>Choose a labelled benchmark sample to send to the hosted classifier. This tests inference against the provider's sample dataset; it does not capture live packets from your network.</span></div>
+          <div><b>CIC-IoT-2023 · LightGBM</b><span>Run a labelled dataset sample through the hosted classifier. This validates inference against the benchmark dataset, not live packets from your network.</span></div>
           <div className="demo-buttons">
-            <button disabled={mlBusy} onClick={() => runMLDemo(0)} className="btn subtle">Test benign sample</button>
-            <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">Test attack sample</button>
-            <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Test second attack</button>
+            <button disabled={mlBusy} onClick={() => runMLDemo(0)} className="btn subtle">Run benign sample</button>
+            <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">Run attack sample</button>
+            <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Run another sample</button>
           </div>
-          {mlResult && <div className="ml-result"><b>Benchmark sample class: {mlResult.expected_prediction || "—"}</b><span>Raw model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Demo validation note: provider output differs from this sample's benchmark label.</span>}</div>}
+          {mlResult && <div className="ml-result"><b>Benchmark sample class: {mlResult.expected_prediction || "—"}</b><span>Raw model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Validation note: model output differs from the benchmark label.</span>}</div>}
         </div>
         <div className="stats-grid">
           <Stat label="Samples processed" value={stats.events ?? 0} hint="Since last backend restart" icon={Activity}/>
