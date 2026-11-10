@@ -78,13 +78,28 @@ export default function App() {
           body: JSON.stringify({ state: demoState === "benign" ? "normal" : "attack" })
         });
         if (!hw.ok) throw new Error("ML sample ran, but the Arduino demo command could not be queued.");
-        setHardwareStatus(demoState === "benign" ? "Normal demo signal queued for Arduino (green LED)." : "Attack demo signal queued for Arduino (red LED + buzzer).");
+        setHardwareStatus(demoState === "benign" ? "Normal demo signal queued for Arduino (green LED)." : "Attack demo signal queued for Arduino (red LED).");
       } else {
         setHardwareStatus("No benchmark label was available; no Arduino demo signal was sent.");
       }
       await refresh();
     } catch (e) { setError(e.message); }
     finally { setMlBusy(false); }
+  }
+
+  async function sendHardwareCommand(command) {
+    setError("");
+    try {
+      const response = await fetch(`${API}/device/demo-command`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Could not queue Arduino LED command");
+      const labels = { N: "Normal / green LED", DOS: "DoS / one long red blink", DDOS: "DDoS / two red blinks", SCAN: "Port scan / three red blinks", BRUTE: "Brute force / four red blinks", BOTNET: "Botnet / five red blinks" };
+      setHardwareStatus(`Queued hardware demo: ${labels[command]}. Manual pattern test, not an ML detection.`);
+    } catch (e) { setError(e.message); }
   }
 
   async function runLabScenario(scenario) {
@@ -146,6 +161,20 @@ export default function App() {
           <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">{mlBusy ? "Running…" : "Simulate attack"}</button>
           <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Try another attack</button>
         </div>
+        <div className="hardware-demo">
+          <b>Arduino LED pattern test · manual demo playback</b>
+          <span>These controls test physical LED patterns directly; they are separate from model predictions.</span>
+          <div className="demo-buttons">
+            {[
+              {command:"N", label:"Normal · green"},
+              {command:"DOS", label:"DoS · 1 blink"},
+              {command:"DDOS", label:"DDoS · 2 blinks"},
+              {command:"SCAN", label:"Port scan · 3 blinks"},
+              {command:"BRUTE", label:"Brute force · 4 blinks"},
+              {command:"BOTNET", label:"Botnet · 5 blinks"}
+            ].map(item => <button key={item.command} className={item.command==="N"?"btn subtle":"btn warning"} onClick={()=>sendHardwareCommand(item.command)}>{item.label}</button>)}
+          </div>
+        </div>
         {mlResult && <div className="ml-result"><b>Benchmark label: {mlResult.expected_prediction || "—"}</b><span>Model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Model output differs from the benchmark label. The raw result is shown without modification.</span>}{hardwareStatus && <span>{hardwareStatus} This is demo playback, not a confirmed ML detection.</span>}</div>}
       </div>
 
@@ -160,7 +189,7 @@ export default function App() {
         <article className="panel chart-panel"><div className="panel-heading"><div><h2>ML confidence trend</h2><p>Recent hosted model inferences</p></div><span className="tag">AUTO REFRESH</span></div>
           {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)"/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Click a quick demo button above to run your first sample.</span></div>}
         </article>
-        <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Optional Arduino endpoint</h2><p>Physical LED and buzzer demonstration</p></div><Cpu size={19}/></div>
+        <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino LED endpoint</h2><p>Physical two-LED demonstration</p></div><Cpu size={19}/></div>
           <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Not connected · cloud demo still works"}</span></div>
           <div className="muted-note">The hosted dashboard and ML demo work without Arduino. Connect the board and start the local bridge only when you want to demonstrate physical alerts.</div>
         </article>
@@ -256,7 +285,7 @@ export default function App() {
           <article className="panel"><div className="panel-heading"><div><h2>Optional hardware setup</h2><p>Three-step local connection</p></div><span className="tag">OPTIONAL</span></div>
             <div className="architecture-step"><span>01</span><div><b>Connect Arduino Uno</b><small>Upload the SentinelIoT firmware and connect it by USB.</small></div></div>
             <div className="architecture-step"><span>02</span><div><b>Start the local bridge</b><small>Run start_sentineliot.bat on the laptop connected to the board.</small></div></div>
-            <div className="architecture-step"><span>03</span><div><b>Demonstrate physical alerts</b><small>Validated normal or suspicious events can control the LEDs and buzzer.</small></div></div>
+            <div className="architecture-step"><span>03</span><div><b>Demonstrate physical alerts</b><small>Use the Overview LED pattern controls to test the two physical LEDs.</small></div></div>
           </article>
         </div>
         <div className="page-note"><AlertTriangle size={17}/><div><b>Hardware is optional</b><span>Cloud benchmark demonstrations work without the local bridge. Render cannot access a USB Arduino attached to your laptop.</span></div></div>
