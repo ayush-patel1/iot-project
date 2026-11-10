@@ -293,11 +293,34 @@ tbody tr:hover{background:rgba(255,255,255,.18)!important}
 .btn:focus-visible,.icon-button:focus-visible,.nav-item:focus-visible{outline:2px solid #6c63ff!important;outline-offset:2px}
 @media(max-width:760px){.sidebar{background:#e0e5ec!important}}
 
-/* Let the overview validation banner fill the available vertical space. */
+/* Balance the validation summary and hardware controls without stretching
+   the banner into an oversized empty full-screen panel. */
 .demo-banner{
   width:100%;
-  min-height:calc(100vh - 190px);
+  min-height:340px;
+  display:grid;
+  grid-template-columns:minmax(240px,.85fr) minmax(0,1.35fr);
   align-items:center;
+  gap:clamp(24px,4vw,56px);
+  padding:clamp(24px,3vw,40px)!important;
+}
+.demo-banner>div:first-child{max-width:440px}
+.hardware-demo{
+  flex-basis:auto!important;
+  width:auto!important;
+  min-width:0;
+  padding-top:0!important;
+  border-top:0!important;
+}
+.hardware-demo>.demo-buttons{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:900px){
+  .demo-banner{grid-template-columns:1fr;gap:24px;min-height:0}
+  .demo-banner>div:first-child{max-width:680px}
+  .hardware-demo{padding-top:20px!important;border-top:1px solid rgba(163,177,198,.35)!important}
+}
+@media(max-width:760px){
+  .demo-banner{padding:22px!important}
+  .hardware-demo>.demo-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 /* Improve readability of the CIC-IoT-2023 explanation */
