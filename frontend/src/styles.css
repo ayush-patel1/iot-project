@@ -211,3 +211,13 @@ tbody tr:hover{background:rgba(255,255,255,.22)}
   .panel-heading{align-items:flex-start}.lab-grid{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Clear, individual controls for each Arduino alert pattern */
+.hardware-demo{flex-basis:100%;width:100%;padding-top:16px;border-top:1px solid rgba(163,177,198,.35)}
+.hardware-demo>.demo-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-top:12px}
+.attack-control{width:100%;min-height:44px;justify-content:center;font-size:11px;font-weight:700;white-space:normal}
+.attack-control.normal{color:#21866c;box-shadow:5px 5px 10px rgba(163,177,198,.55),-5px -5px 10px rgba(255,255,255,.6)}
+.attack-control.attack{color:#bd4c5b}
+.attack-control.attack:hover:not(:disabled){color:#a53a49}
+@media(max-width:760px){.hardware-demo>.demo-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}.attack-control{min-height:48px}}
