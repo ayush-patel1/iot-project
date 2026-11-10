@@ -224,18 +224,19 @@ def queue_hardware_demo_command(data: HardwareDemoCommand):
     next_hardware_command_id += 1
     hardware_commands.append(command)
 
-    # Record manual LED playback in the same activity feed as model inferences.
-    # It is explicitly a demo event and carries no ML confidence score.
+    # Record the physical endpoint action as a hardware signal, not an ML prediction.
     labels = {"N": "Normal", "A": "Generic attack", "DOS": "DoS", "DDOS": "DDoS",
               "SCAN": "Port scan", "BRUTE": "Brute force", "BOTNET": "Botnet"}
+    is_normal = data.command == "N"
     event = {"timestamp": datetime.now(timezone.utc).isoformat(),
-             "source": "dashboard-hardware-demo", "scenario": "manual-led-test",
-             "status": "unclassified", "model_prediction": None,
-             "attack_type": labels[data.command], "display_label": labels[data.command],
-             "command": data.command, "confidence": None, "latency_ms": None,
-             "model": "hardware-demo"}
+             "source": "dashboard-hardware-command", "scenario": "hardware-led-command",
+             "status": "normal" if is_normal else "hardware-triggered",
+             "model_prediction": None, "attack_type": labels[data.command],
+             "display_label": labels[data.command], "command": data.command,
+             "confidence": None, "latency_ms": None, "model": "Manual LED control",
+             "event_type": "hardware"}
     events.appendleft(event)
-    print(f"[SentinelIoT] Dashboard hardware demo queued: {labels[data.command]} ({data.command})")
+    print(f"[SentinelIoT] Hardware signal queued: {labels[data.command]} ({data.command})")
     return {"status": "queued", "command": command, "sentinel_event": event}
 
 @app.get("/device/commands")
@@ -248,9 +249,14 @@ def get_device_telemetry():
 
 @app.get("/stats")
 def stats():
-    data=list(events)
-    return {"events":len(data),"normal":sum(x["status"]=="normal" for x in data),
-            "suspicious":sum(x["status"]=="suspicious" for x in data)}
+    data = list(events)
+    return {
+        "events": len(data),
+        "normal": sum(x.get("status") == "normal" for x in data),
+        "suspicious": sum(x.get("status") == "suspicious" for x in data),
+        "hardware_normal": sum(x.get("event_type") == "hardware" and x.get("status") == "normal" for x in data),
+        "hardware_attack": sum(x.get("event_type") == "hardware" and x.get("status") == "hardware-triggered" for x in data),
+    }
 
 @app.on_event("shutdown")
 def shutdown():
