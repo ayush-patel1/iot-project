@@ -12,15 +12,27 @@ import serial
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", required=True, help="Arduino port, e.g. COM3")
-    parser.add_argument("--api", default="https://iot-project-avq0.onrender.com")
+    parser.add_argument("--port", default="auto", help="Arduino serial port, e.g. COM5, or auto")
+    parser.add_argument("--api", default="http://127.0.0.1:8000")
     parser.add_argument("--poll-seconds", type=float, default=2.0)
     args = parser.parse_args()
     api = args.api.rstrip("/")
     seen = set()
     last_poll = 0.0
-    print(f"Connecting to Arduino {args.port} and SentinelIoT {api}")
-    with serial.Serial(args.port, 9600, timeout=0.25, write_timeout=1) as board:
+    port = args.port
+    if port.lower() == "auto":
+        from serial.tools import list_ports
+        ports = list(list_ports.comports())
+        if not ports:
+            raise SystemExit("No serial device found. Connect the Arduino and check its USB cable/driver.")
+        arduino_ports = [p for p in ports if any(k in (p.description or "").lower() for k in ("arduino", "usb serial", "ch340", "cp210", "ftdi"))]
+        candidates = arduino_ports or ports
+        if len(candidates) != 1:
+            details = "\n".join(str(p.device) + ": " + str(p.description) for p in ports)
+            raise SystemExit("More than one serial device found. Run with --port COMx.\n" + details)
+        port = candidates[0].device
+    print(f"Connecting to Arduino {port} and SentinelIoT {api}")
+    with serial.Serial(port, 9600, timeout=0.25, write_timeout=1) as board:
         time.sleep(2)
         print("Device agent running. Ctrl+C to stop.")
         while True:
