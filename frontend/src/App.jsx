@@ -117,9 +117,9 @@ export default function App() {
           body: JSON.stringify({ command: demoState === "benign" ? "N" : "A" })
         });
         if (!hw.ok) throw new Error("ML sample ran, but the Arduino demo command could not be queued.");
-        setHardwareStatus(demoState === "benign" ? "Normal demo signal queued for Arduino (green LED)." : "Generic attack demo signal queued for Arduino (red LED).");
+        setHardwareStatus(demoState === "benign" ? "Normal signal queued for Arduino (green LED)." : "Generic attack signal queued for Arduino (red LED).");
       } else {
-        setHardwareStatus("No benchmark label was available; no Arduino demo signal was sent.");
+        setHardwareStatus("No benchmark label was available; no Arduino signal was sent.");
       }
       await refresh();
     } catch (e) { setError(e.message); }
@@ -248,7 +248,7 @@ export default function App() {
         <Stat label="Total activity events" value={activityStats.total} hint="Model inferences + hardware signals" icon={Activity}/>
         <Stat label="Normal signals" value={activityStats.normal} hint="Benign predictions + normal endpoint signals" icon={ShieldCheck} tone="green"/>
         <Stat label="Attack signals" value={activityStats.attacks} hint="Model alerts + triggered endpoint patterns" icon={AlertTriangle} tone="red"/>
-        <Stat label="Arduino endpoint" value={deviceConnected ? "Connected" : "Optional"} hint="Not required for cloud demo" icon={Cpu} tone="purple"/>
+        <Stat label="Arduino endpoint" value={deviceConnected ? "Connected" : "Optional"} hint="Hardware is optional" icon={Cpu} tone="purple"/>
       </div>
 
       <div className="content-grid">
@@ -257,8 +257,8 @@ export default function App() {
             <Line type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#f0a34a" strokeWidth={2} connectNulls={false} dot={{ r: 5 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a sample above to populate the activity timeline.</span></div>}
         </article>
         <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino LED endpoint</h2><p>Physical two-LED demonstration</p></div><Cpu size={19}/></div>
-          <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Not connected · cloud demo still works"}</span></div>
-          <div className="muted-note">The hosted dashboard and ML demo work without Arduino. Connect the board and start the local bridge only when you want to demonstrate physical alerts.</div>
+          <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Not connected · cloud features available"}</span></div>
+          <div className="muted-note">The dashboard and model validation tools work without Arduino. Connect the board and start the local bridge to enable physical endpoint alerts.</div>
         </article>
       </div>
 
@@ -271,7 +271,7 @@ export default function App() {
       </>}
       {page === "lab" && <>
         {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
-        <div className="lab-warning"><AlertTriangle size={18}/><div><b>Attack Lab · synthetic flow inference</b><span>Choose a ready-made scenario. SentinelIoT builds synthetic feature values and sends them to the hosted CIC-IoT-2023 API. These are demonstrations, not packet-captured dataset flows.</span></div></div>
+        <div className="lab-warning"><AlertTriangle size={18}/><div><b>Attack Lab · synthetic flow inference</b><span>Choose a ready-made scenario. SentinelIoT generates controlled feature values and sends them to the hosted CIC-IoT-2023 API. These scenarios are not packet-captured network flows.</span></div></div>
         <div className="lab-grid">
           {[
             {id:"normal",title:"Normal activity",kind:"Baseline",desc:"15 spaced HTTP-like events with modest payload sizes.",tone:"good"},
@@ -314,7 +314,7 @@ export default function App() {
           {chartData.length ? <ResponsiveContainer width="100%" height={270}><AreaChart data={chartData}><defs><linearGradient id="trafficConfidence" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.24}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#e8edf4" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><YAxis domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><Tooltip/><Area type="monotone" dataKey="confidence" stroke="#269d8a" strokeWidth={2.5} fill="url(#trafficConfidence)" dot={{ r: 5, fill: "#269d8a", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No ML samples yet</b><span>Run a sample to see its confidence here.</span></div>}
         </article>
         <div className="panel table-panel">
-          <div className="panel-heading"><div><h2>Optional live Wi-Fi capture</h2><p>Advanced local feature · not needed for the demo</p></div><span className="tag">OPTIONAL</span></div>
+          <div className="panel-heading"><div><h2>Optional live Wi-Fi capture</h2><p>Optional local integration · not required for model validation</p></div><span className="tag">OPTIONAL</span></div>
           <p>To experiment with local packet capture on Windows, install Npcap and Scapy, then run these commands from your cloned repository in PowerShell as Administrator.</p>
           <pre>py -m pip install -r network/requirements.txt{"\n"}py network/live_capture.py --interface Wi-Fi</pre>
           <p>Capture-only mode prints real packet-derived flow summaries. Experimental feature estimates can be submitted with:</p>
@@ -339,7 +339,7 @@ export default function App() {
       {page === "device" && <>
         <div className="content-grid">
           <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino Uno status</h2><p>Optional USB serial hardware bridge</p></div><Cpu size={19}/></div>
-            <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Local USB bridge connected" : "Not connected · cloud demo still works"}</span></div>
+            <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Local USB bridge connected" : "Not connected · cloud features available"}</span></div>
             <div className="device-meta"><span>Backend status</span><b>{health?.status || "Unknown"}</b></div>
             <div className="device-meta"><span>Device telemetry</span><b>{deviceConnected ? "Receiving live telemetry" : "Telemetry stale / not received"}</b></div>
             <div className="device-meta"><span>Device ID</span><b>{deviceTelemetry?.device_id || "—"}</b></div>
@@ -355,7 +355,7 @@ export default function App() {
             <div className="architecture-step"><span>03</span><div><b>Demonstrate physical alerts</b><small>Use the Overview LED pattern controls to test the two physical LEDs.</small></div></div>
           </article>
         </div>
-        <div className="page-note"><AlertTriangle size={17}/><div><b>Hardware is optional</b><span>Cloud benchmark demonstrations work without the local bridge. Render cannot access a USB Arduino attached to your laptop.</span></div></div>
+        <div className="page-note"><AlertTriangle size={17}/><div><b>Hardware is optional</b><span>Cloud benchmark validation works without the local bridge. Render cannot access a USB Arduino attached to your laptop.</span></div></div>
       </>}
     </section>
   </main>;
