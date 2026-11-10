@@ -63,9 +63,9 @@ def main():
                     for item in response.json():
                         command_id = int(item["id"])
                         command = item["command"]
-                        if command in ("A", "N"):
-                            board.write(command.encode("ascii"))
-                            print("Dashboard demo command:", item["state"], "->", "red LED + buzzer" if command == "A" else "green LED")
+                        if command in ("A", "N", "DOS", "DDOS", "SCAN", "BRUTE", "BOTNET"):
+                            board.write((command + "\n").encode("ascii"))
+                            print("Dashboard LED demo command:", command)
                         last_command_id = max(last_command_id, command_id)
 
                     # Keep support for validated backend alerts as well.
