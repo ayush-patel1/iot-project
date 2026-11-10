@@ -50,11 +50,16 @@ def main():
                 if line.startswith("{"):
                     try:
                         telemetry = json.loads(line)
-                        if "device_id" in telemetry:
+                    except json.JSONDecodeError as exc:
+                        print(f"Invalid Arduino telemetry JSON ({exc}); raw line: {line!r}")
+                        telemetry = None
+
+                    if isinstance(telemetry, dict) and "device_id" in telemetry:
+                        try:
                             response = requests.post(api + "/device/telemetry", json=telemetry, timeout=10)
                             response.raise_for_status()
-                    except (ValueError, requests.RequestException) as exc:
-                        print("Telemetry upload error:", exc)
+                        except requests.RequestException as exc:
+                            print("Telemetry HTTP upload error:", exc)
 
                 now = time.monotonic()
                 if now - last_poll >= max(1.0, args.poll_seconds):
