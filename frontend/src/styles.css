@@ -297,13 +297,16 @@ tbody tr:hover{background:rgba(255,255,255,.18)!important}
    the banner into an oversized empty full-screen panel. */
 .demo-banner{
   width:100%;
-  min-height:340px;
+  min-height:0!important;
   display:grid;
   grid-template-columns:minmax(240px,.85fr) minmax(0,1.35fr);
-  align-items:center;
-  gap:clamp(24px,4vw,56px);
-  padding:clamp(24px,3vw,40px)!important;
+  align-items:start;
+  gap:clamp(20px,3vw,40px);
+  padding:22px 26px!important;
+  margin-bottom:14px;
 }
+.demo-banner>div:first-child{align-self:start;padding-top:2px}
+.hardware-demo{align-self:start}
 .demo-banner>div:first-child{max-width:440px}
 .hardware-demo{
   flex-basis:auto!important;
