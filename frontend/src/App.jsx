@@ -176,12 +176,18 @@ export default function App() {
   const chartData = useMemo(() => [...alerts]
     .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
     .slice(-20)
-    .map(x => ({
-      name: new Date(x.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-      activity: x.display_label || x.model_prediction || x.attack_type || x.scenario || "Event",
-      confidence: x.confidence == null ? null : Math.round(x.confidence * 100),
-      hardwareSignal: x.event_type === "hardware" || x.source === "dashboard-hardware-demo" ? 100 : null
-    })), [alerts]);
+    .map(x => {
+      const rawConfidence = x.confidence == null ? NaN : Number.parseFloat(String(x.confidence).replace("%", ""));
+      const confidence = Number.isFinite(rawConfidence)
+        ? Math.max(0, Math.min(100, Math.round(rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence)))
+        : null;
+      return {
+        name: new Date(x.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        activity: x.display_label || x.model_prediction || x.attack_type || x.scenario || "Event",
+        confidence,
+        hardwareSignal: x.event_type === "hardware" || x.source === "dashboard-hardware-demo" ? 100 : null
+      };
+    }), [alerts]);
 
   async function copyCommand(scenario) {
     const command = `python network/traffic_generator.py --scenario ${scenario}`;
@@ -248,8 +254,8 @@ export default function App() {
 
       <div className="content-grid">
         <article className="panel chart-panel"><div className="panel-heading"><div><h2>Security activity timeline</h2><p>ML confidence and hardware signal events</p></div><span className="tag">AUTO REFRESH</span></div>
-          {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" name="ML confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)" connectNulls={false} dot={{ r: 5, fill: "#36b7a5", stroke: "#101d2d", strokeWidth: 2 }} activeDot={{ r: 7 }}/>
-            <Line type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#f0a34a" strokeWidth={2} connectNulls={false} dot={{ r: 5 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a sample above to populate the activity timeline.</span></div>}
+          {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" name="ML confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)" connectNulls={true} dot={{ r: 5, fill: "#36b7a5", stroke: "#101d2d", strokeWidth: 2 }} activeDot={{ r: 7 }}/>
+            <Line type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#f0a34a" strokeWidth={2} connectNulls={true} dot={{ r: 5, fill: "#f0a34a" }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a sample above to populate the activity timeline.</span></div>}
         </article>
         <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino LED endpoint</h2><p>Hardware monitoring and alert output</p></div><Cpu size={19}/></div>
           <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Offline"}</span></div>
