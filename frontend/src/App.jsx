@@ -26,6 +26,7 @@ function Stat({ label, value, hint, icon: Icon, tone = "blue" }) {
 export default function App() {
   const [page, setPage] = useState("overview");
   const [health, setHealth] = useState(null);
+  const [modelHealth, setModelHealth] = useState(null);
   const [deviceTelemetry, setDeviceTelemetry] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState({ events: 0, normal: 0, suspicious: 0 });
@@ -39,10 +40,11 @@ export default function App() {
   const refresh = useCallback(async () => {
     try {
       const [h, a, s, d] = await Promise.all([
-        fetch(`${API}/health`), fetch(`${API}/alerts`), fetch(`${API}/stats`), fetch(`${API}/device/telemetry`)
+        fetch(`${API}/health`), fetch(`${API}/alerts`), fetch(`${API}/stats`), fetch(`${API}/device/telemetry`),
+        fetch(`${API}/ml/health`).then(r => r.ok ? r.json() : null).catch(() => null)
       ]);
       if (!h.ok || !a.ok || !s.ok || !d.ok) throw new Error("API returned an error");
-      setHealth(await h.json()); setAlerts(await a.json()); setStats(await s.json()); setDeviceTelemetry(await d.json()); setError("");
+      setHealth(await h.json()); setAlerts(await a.json()); setStats(await s.json()); setDeviceTelemetry(await d.json()); setModelHealth(await m); setError("");
     } catch {
       setHealth(null); setError("Backend unavailable. Start FastAPI at 127.0.0.1:8000.");
     }
@@ -117,7 +119,7 @@ export default function App() {
 
     <section className="main">
       <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",lab:"Attack Lab",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor ML detections and system health.",traffic:"Inspect benchmark inference and run the local Wi-Fi capture agent.",lab:"Generate safe, bounded traffic patterns against a local test service.",alerts:"Review and export suspicious and benign ML predictions.",device:"Check the Arduino bridge status and local hardware setup."})[page]}</p></div>
-        <div className="top-actions"><span className={health ? "status-pill online" : "status-pill offline"}><i/> {health ? "API connected" : "API disconnected"}</span><button className="icon-button" onClick={refresh} title="Refresh"><RefreshCw size={17}/></button></div>
+        <div className="top-actions"><span className={health ? "status-pill online" : "status-pill offline"}><i/> {health ? "Backend online" : "Backend offline"}</span><span className={modelHealth?.status === "ok" ? "status-pill online" : "status-pill offline"}><i/> {modelHealth?.status === "ok" ? "ML model online" : "ML model unavailable"}</span><button className="icon-button" onClick={refresh} title="Refresh"><RefreshCw size={17}/></button></div>
       </header>
 
       {page === "overview" && <>
