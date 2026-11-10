@@ -57,6 +57,7 @@ export default function App() {
   const [mlBusy, setMlBusy] = useState(false);
   const [mlResult, setMlResult] = useState(null);
   const [hardwareStatus, setHardwareStatus] = useState("");
+  const [scenarioDemoResult, setScenarioDemoResult] = useState(null);
   const [copiedScenario, setCopiedScenario] = useState("");
   const [labBusy, setLabBusy] = useState("");
   const [labResult, setLabResult] = useState(null);
@@ -125,8 +126,16 @@ export default function App() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Could not queue Arduino LED command");
       if (data.sentinel_event) setAlerts(current => mergeEvents(current, [data.sentinel_event]));
-      const labels = { N: "Normal / green LED", A: "Generic attack / red LED", DOS: "DoS / one long red blink", DDOS: "DDoS / two red blinks", SCAN: "Port scan / three red blinks", BRUTE: "Brute force / four red blinks", BOTNET: "Botnet / five red blinks" };
-      setHardwareStatus(`Hardware signal queued: ${labels[command]}.`);
+      const labels = { N: "Normal", A: "Generic attack", DOS: "DoS", DDOS: "DDoS", SCAN: "Port scan", BRUTE: "Brute force", BOTNET: "Botnet" };
+      const patterns = { N: "green LED", A: "red LED", DOS: "one long red blink", DDOS: "two red blinks", SCAN: "three red blinks", BRUTE: "four red blinks", BOTNET: "five red blinks" };
+      const demoConfidence = Math.floor(70 + Math.random() * 26);
+      setScenarioDemoResult({
+        label: labels[command] || "Attack scenario",
+        confidence: demoConfidence,
+        timestamp: new Date().toISOString(),
+        isNormal: command === "N"
+      });
+      setHardwareStatus(`Hardware signal queued: ${labels[command]} · ${patterns[command]}.`);
     } catch (e) { setError(e.message); }
   }
 
@@ -214,7 +223,12 @@ export default function App() {
               {command:"BOTNET", label:"Botnet · 5 blinks"}
             ].map(item => <button key={item.command} className={item.command==="N"?"btn subtle":"btn warning"} onClick={()=>sendHardwareCommand(item.command)}>{item.label}</button>)}
           </div>
-          {hardwareStatus && <div className="ml-result"><b>Hardware test status</b><span>{hardwareStatus} This manual LED test does not create an ML detection.</span></div>}
+          {hardwareStatus && <div className="ml-result"><b>Hardware test status</b><span>{hardwareStatus}</span></div>}
+          {scenarioDemoResult && <div className="ml-result">
+            <b>Scenario demonstration: {scenarioDemoResult.label} {scenarioDemoResult.isNormal ? "signal" : "scenario"}</b>
+            <span>Demo score: {scenarioDemoResult.confidence}% · Scenario-driven result · {new Date(scenarioDemoResult.timestamp).toLocaleTimeString()}</span>
+            <span>This score is simulated for the interactive demonstration; it is not an ML model confidence or an independently verified detection.</span>
+          </div>}
         </div>
         {mlResult && <div className="ml-result"><b>Benchmark label: {mlResult.expected_prediction || "—"}</b><span>Model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Model output differs from the benchmark label. The raw result is shown without modification.</span>}{hardwareStatus && <span>{hardwareStatus} This is demo playback, not a confirmed ML detection.</span>}</div>}
       </div>
