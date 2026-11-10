@@ -215,7 +215,7 @@ export default function App() {
       {page === "overview" && <>
       {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
       <div className="demo-banner">
-        <div><b>Model validation · CIC-IoT-2023</b><span>Evaluate labelled CIC-IoT-2023 samples with the hosted LightGBM model. Samples 0–4 are benign and 5–9 are attack-labelled. These results validate the inference pipeline; live network capture is configured separately.</span></div>
+        <div><b>Model validation · CIC-IoT-2023</b><span>Test the hosted LightGBM model on labelled CIC-IoT-2023 samples to review how it classifies benign and attack traffic. This checks the inference pipeline; live network monitoring operates separately.</span></div>
         <div className="hardware-demo">
           <b>Hardware controls</b>
           <span>Send a signal to the connected Arduino endpoint. Hardware commands are recorded separately from model predictions.</span>
