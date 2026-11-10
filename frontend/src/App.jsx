@@ -232,7 +232,7 @@ export default function App() {
               {command:"SCAN", label:"Port scan · 3 blinks"},
               {command:"BRUTE", label:"Brute force · 4 blinks"},
               {command:"BOTNET", label:"Botnet · 5 blinks"}
-            ].map(item => <button key={item.command} className={item.command==="N"?"btn subtle":"btn warning"} onClick={()=>sendHardwareCommand(item.command)}>{item.label}</button>)}
+            ].map(item => <button key={item.command} className={`btn attack-control ${item.command==="N"?"normal": "attack"}`} onClick={()=>sendHardwareCommand(item.command)}>{item.label}</button>)}
           </div>
           {hardwareStatus && <div className="ml-result"><b>Endpoint status</b><span>{hardwareStatus}</span></div>}
           {scenarioDemoResult && <div className="ml-result">
