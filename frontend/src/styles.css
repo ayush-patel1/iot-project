@@ -221,3 +221,74 @@ tbody tr:hover{background:rgba(255,255,255,.22)}
 .attack-control.attack{color:#bd4c5b}
 .attack-control.attack:hover:not(:disabled){color:#a53a49}
 @media(max-width:760px){.hardware-demo>.demo-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}.attack-control{min-height:48px}}
+
+
+/* Neumorphism design system — cool grey soft UI */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap');
+:root{
+  color-scheme:light;
+  --ink:#3d4852;--muted:#6b7280;--line:transparent;--surface:#e0e5ec;--canvas:#e0e5ec;
+  --primary:#6c63ff;--primary-soft:#eeedff;--teal:#38b2ac;--green:#238f78;
+  --red:#bd4c5b;--amber:#94651b;
+  --shadow:9px 9px 16px rgba(163,177,198,.6),-9px -9px 16px rgba(255,255,255,.5);
+  font-family:'DM Sans',sans-serif;
+}
+html,body,#root,.shell,.main{background:#e0e5ec!important;color:#3d4852!important}
+.sidebar{background:#e0e5ec!important;border:0!important;box-shadow:5px 5px 12px rgba(163,177,198,.35)!important}
+.brand b,.topbar h1,.stat-card strong,.panel-heading h2,.device-visual b,
+.lab-card h3,.page-note b,.architecture-step b{color:#3d4852!important}
+.topbar h1,.panel-heading h2,.lab-card h3,.brand b{font-family:'Plus Jakarta Sans',sans-serif}
+.brand small,.side-label,.eyebrow,.topbar p,.panel-heading p,.stat-top,
+.stat-card small,.demo-banner span,.device-visual span,.device-meta span,
+.device-meta b,.lab-card p,.page-note span,.architecture-step small,
+.empty-chart span,footer{color:#6b7280!important}
+.demo-banner,.panel,.stat-card,.sidebar-bottom{
+  background:#e0e5ec!important;border:0!important;border-radius:32px!important;box-shadow:var(--shadow)!important
+}
+.demo-banner{padding:24px}
+.demo-banner b{color:#3d4852!important}
+.stat-card:hover,.panel:hover{transform:translateY(-2px);box-shadow:12px 12px 20px rgba(163,177,198,.7),-12px -12px 20px rgba(255,255,255,.6)!important}
+.icon-button,.btn{
+  background:#e0e5ec!important;border:0!important;color:#3d4852!important;border-radius:16px!important;
+  box-shadow:5px 5px 10px rgba(163,177,198,.6),-5px -5px 10px rgba(255,255,255,.5)!important;
+  transition:all 300ms ease-out!important
+}
+.icon-button:hover,.btn:hover:not(:disabled){background:#e0e5ec!important;transform:translateY(-1px);box-shadow:12px 12px 20px rgba(163,177,198,.7),-12px -12px 20px rgba(255,255,255,.6)!important}
+.btn:active:not(:disabled){transform:translateY(.5px);box-shadow:inset 3px 3px 6px rgba(163,177,198,.6),inset -3px -3px 6px rgba(255,255,255,.5)!important}
+.btn.subtle{background:#e0e5ec!important;color:#5d55df!important}
+.btn.warning{background:#e0e5ec!important;color:#94651b!important}
+.btn.danger,.attack-control.attack{background:#e0e5ec!important;color:#bd4c5b!important}
+.attack-control.normal{background:#e0e5ec!important;color:#238f78!important}
+.status-pill{background:#e0e5ec!important;color:#238f78!important;border:0!important;box-shadow:inset 3px 3px 6px rgba(163,177,198,.6),inset -3px -3px 6px rgba(255,255,255,.5)!important}
+.status-pill.offline{background:#e0e5ec!important;color:#bd4c5b!important}
+.notice,.lab-warning,.page-note,.muted-note,.ml-result{
+  background:#e0e5ec!important;border:0!important;border-radius:16px!important;
+  box-shadow:inset 6px 6px 10px rgba(163,177,198,.6),inset -6px -6px 10px rgba(255,255,255,.5)!important
+}
+.lab-warning,.notice{color:#805c20!important}
+.lab-warning b,.lab-warning span{color:#805c20!important}
+.ml-result b{color:#238f78!important}.ml-result span{color:#596f69!important}
+.tag,.detector,.lab-kind.good,.lab-kind.warn,.lab-kind.blue,.lab-local,
+.icon-wrap,.icon-wrap.green,.icon-wrap.red,.icon-wrap.purple,.device-orb,
+.architecture-step>span{
+  background:#e0e5ec!important;border:0!important;color:#6c63ff!important;
+  box-shadow:inset 6px 6px 10px rgba(163,177,198,.6),inset -6px -6px 10px rgba(255,255,255,.5)!important
+}
+.icon-wrap.green{color:#238f78!important}.icon-wrap.red{color:#bd4c5b!important}
+.device-meta,.architecture-step{border-color:rgba(163,177,198,.35)!important}
+th{background:transparent!important;color:#6b7280!important;border-color:rgba(163,177,198,.4)!important}
+td{color:#3d4852!important;border-color:rgba(163,177,198,.3)!important}
+tbody tr:hover{background:rgba(255,255,255,.18)!important}
+.event-badge.good{background:#e0e5ec!important;color:#238f78!important}
+.event-badge.bad{background:#e0e5ec!important;color:#bd4c5b!important}
+.event-badge.neutral{background:#e0e5ec!important;color:#596571!important}
+.lab-command,pre,input,select,textarea{
+  background:#e0e5ec!important;color:#3d4852!important;border:0!important;border-radius:16px!important;
+  box-shadow:inset 10px 10px 20px rgba(163,177,198,.7),inset -10px -10px 20px rgba(255,255,255,.6)!important
+}
+.lab-terminal{background:#e0e5ec!important;color:#3d4852!important;box-shadow:var(--shadow)!important}
+.lab-terminal code{color:#3d4852!important}
+.nav-item.active{background:#e0e5ec!important;color:#5d55df!important;box-shadow:inset 4px 4px 8px rgba(163,177,198,.55),inset -4px -4px 8px rgba(255,255,255,.65)!important}
+.nav-item:hover:not(.active){background:#e0e5ec!important;color:#5149d2!important;box-shadow:5px 5px 10px rgba(163,177,198,.35),-5px -5px 10px rgba(255,255,255,.45)!important}
+.btn:focus-visible,.icon-button:focus-visible,.nav-item:focus-visible{outline:2px solid #6c63ff!important;outline-offset:2px}
+@media(max-width:760px){.sidebar{background:#e0e5ec!important}}
