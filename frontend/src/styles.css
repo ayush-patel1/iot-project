@@ -320,3 +320,10 @@ tbody tr:hover{background:rgba(255,255,255,.18)!important}
   .sidebar .brand{width:100%!important}
   .main{margin:0!important;width:100%!important;padding-top:22px!important}
 }
+
+
+/* Give Recharts a measurable canvas and keep it legible on the soft-grey surface */
+.chart-panel{min-width:0}
+.activity-chart{width:100%;height:245px;min-width:0;position:relative}
+.activity-chart .recharts-responsive-container{min-width:0!important}
+.activity-chart .recharts-surface{overflow:visible}
