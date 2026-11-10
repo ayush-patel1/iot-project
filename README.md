@@ -3,29 +3,23 @@
 
 SentinelIoT is an educational IoT security prototype with a React dashboard, FastAPI backend, hosted CIC-IoT-2023 LightGBM inference, optional Wi-Fi packet capture, and optional Arduino LED feedback.
 
-## Quick start (Windows)
+## Quick start (Windows + Arduino Uno)
 
-**Requirements:** Python 3.10+ and Node.js LTS.
+**Requirements:** Python 3.10+, Node.js LTS, Arduino Uno, and a USB data cable.
 
-1. Download or clone this repository.
-2. Double-click **`start_sentineliot.bat`**.
-3. Wait for the dashboard to open at http://127.0.0.1:5173.
-4. Open **Overview** or **Traffic Monitor** and run a labelled sample to test ML inference.
+### One-time board setup
+1. Open arduino/sentinel.ino in Arduino IDE.
+2. Select Arduino Uno and its COM port.
+3. Upload the firmware once. It reports device ID, uptime, and LED state, and accepts A (LED on) / N (LED off).
 
-The first launch creates a Python virtual environment and installs dependencies. Two terminal windows stay open while the backend and dashboard run. Close them to stop SentinelIoT.
+### Every run
+1. Connect the Uno to the laptop by USB. Close Arduino IDE Serial Monitor.
+2. Double-click start_sentineliot.bat.
+3. The launcher starts the backend, dashboard, and Arduino bridge; the bridge auto-detects the serial port.
+4. The dashboard opens at http://127.0.0.1:5173. Check the Device endpoint page for telemetry.
+5. Use Overview / Traffic Monitor to run the hosted model's benchmark inference.
 
-## Is a real ML model used?
-
-Yes, the inference endpoint calls a **hosted pretrained CIC-IoT-2023 LightGBM model** (or Random Forest when selected). The trained model and fitted scaler are hosted by the external model provider; they are **not stored in this repository**. The backend sends requests to `SENTINEL_MODEL_API` (default: `https://tbommawa-iot-ids-api.hf.space`). If that service is unavailable or its preprocessing is incorrect, model results cannot be trusted. The dashboard must show the provider status and raw model output rather than inventing a classification.
-
-The built-in sample buttons use the provider's preloaded benchmark fixtures. Their expected labels are known (samples 0–4 benign, 5–9 attack); expected labels are for comparison only and must not be substituted for model predictions.
-
-## Optional hardware and network features
-
-- **Arduino Uno:** Upload `arduino/sentinel.ino`, then run `py network/device_agent.py --port COM5` (replace COM5 with your board's port). Close Arduino Serial Monitor first. This bridge is optional; it sends board telemetry and relays supported alerts.
-- **Live Wi-Fi capture:** Requires Npcap, Scapy, and Administrator permissions. Run `py network/live_capture.py --interface Wi-Fi`. This captures traffic visible to the laptop only. Its CIC-IoT feature mapping is experimental and **not validated for real intrusion classification**. Do not treat its predictions as confirmed attacks.
-- **Attack Lab:** Sends synthetic HTTP-derived feature estimates to the hosted model. These are not genuine packet captures or validated CIC-IoT-2023 flow features.
-
+The first launch creates a Python virtual environment and installs dependencies. Keep the backend, dashboard, and Arduino terminal windows open. If multiple serial devices are attached, run network/device_agent.py with --port COMx using the Arduino's port.
 ## Architecture
 
 ```
