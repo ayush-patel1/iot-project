@@ -6,6 +6,17 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 // requiring users to start a local API. Local development can override this.
 const API = (import.meta.env.VITE_API_URL || "https://iot-project-avq0.onrender.com").replace(/\/+$/, "");
 
+function mergeEvents(current, incoming) {
+  const unique = new Map();
+  [...(Array.isArray(current) ? current : []), ...(Array.isArray(incoming) ? incoming : [])]
+    .filter(Boolean)
+    .forEach(event => {
+      const key = [event.timestamp, event.source, event.scenario, event.model].join("|");
+      unique.set(key, event);
+    });
+  return [...unique.values()].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+}
+
 function predictionLabel(event) {
   // For labelled provider demo fixtures, show the benchmark's known class in
   // the activity table. The raw model output remains visible in the demo result.
@@ -47,7 +58,12 @@ export default function App() {
         fetch(`${API}/ml/health`).then(r => r.ok ? r.json() : null).catch(() => null)
       ]);
       if (!h.ok || !a.ok || !s.ok || !d.ok) throw new Error("API returned an error");
-      setHealth(await h.json()); setAlerts(await a.json()); setStats(await s.json()); setDeviceTelemetry(await d.json()); setModelHealth(m); setError("");
+      const [healthData, alertData, statsData, deviceData] = await Promise.all([h.json(), a.json(), s.json(), d.json()]);
+      setHealth(healthData);
+      // Keep events returned by an inference request even if the next poll
+      // reaches a different backend worker with a separate in-memory deque.
+      setAlerts(current => mergeEvents(current, alertData));
+      setStats(statsData); setDeviceTelemetry(deviceData); setModelHealth(m); setError("");
     } catch {
       setHealth(null); setError(`Cloud backend unavailable at ${API}. Please try refreshing in a moment.`);
     }
@@ -65,6 +81,7 @@ export default function App() {
       const response = await fetch(`${API}/ml/demo/${sampleIdx}?model=lightgbm`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Pretrained model request failed");
+      if (data.sentinel_event) setAlerts(current => mergeEvents(current, [data.sentinel_event]));
       setMlResult({
         ...data.inference,
         expected_prediction: data.sentinel_event?.expected_prediction,
@@ -111,14 +128,16 @@ export default function App() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Attack Lab inference failed");
-      setLabResult(data); await refresh();
+      setLabResult(data);
+      if (data.sentinel_event) setAlerts(current => mergeEvents(current, [data.sentinel_event]));
+      await refresh();
     } catch (e) { setError(e.message); }
     finally { setLabBusy(""); }
   }
 
   const deviceConnected = Boolean(deviceTelemetry?.connected && deviceTelemetry?.received_at && Date.now() - Date.parse(deviceTelemetry.received_at) < 10000);
 
-  const chartData = useMemo(() => [...alerts].slice(0, 12).reverse().map((x, i) => ({
+  const chartData = useMemo(() => [...alerts].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp)).slice(-12).map((x, i) => ({
     name: new Date(x.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
     confidence: Math.round((x.confidence || 0) * 100)
   })), [alerts]);
@@ -179,7 +198,7 @@ export default function App() {
       </div>
 
       <div className="stats-grid">
-        <Stat label="Events processed" value={stats.events ?? 0} hint="Current demo session" icon={Activity}/>
+        <Stat label="ML predictions" value={alerts.length} hint="Includes benchmark samples" icon={Activity}/>
         <Stat label="Normal events" value={stats.normal ?? 0} hint="Model-classified benign" icon={ShieldCheck} tone="green"/>
         <Stat label="Suspicious events" value={stats.suspicious ?? 0} hint="Model-classified attack" icon={AlertTriangle} tone="red"/>
         <Stat label="Arduino endpoint" value={deviceConnected ? "Connected" : "Optional"} hint="Not required for cloud demo" icon={Cpu} tone="purple"/>
