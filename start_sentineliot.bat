@@ -43,8 +43,8 @@ if not exist "frontend\node_modules" (
 )
 
 echo [4/4] Starting SentinelIoT...
-start "SentinelIoT API" cmd /k "cd /d "%~dp0" && "%~dp0.venv\Scripts\python.exe" -m uvicorn backend.main:app --host 127.0.0.1 --port 8000"
-start "SentinelIoT Dashboard" cmd /k "cd /d "%~dp0frontend" && npm run dev"
+start "SentinelIoT API" /D "%~dp0" cmd /k ""%~dp0.venv\Scripts\python.exe" -m uvicorn backend.main:app --host 127.0.0.1 --port 8000"
+start "SentinelIoT Dashboard" /D "%~dp0frontend" cmd /k "npm run dev"
 timeout /t 5 /nobreak >nul
 start "" "http://127.0.0.1:5173"
 
