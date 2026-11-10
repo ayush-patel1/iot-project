@@ -133,46 +133,81 @@ footer{text-align:center;color:#9aa5b5;font-size:10px;padding:20px 0 0}
 @media(max-width:760px){.lab-grid{grid-template-columns:1fr}.lab-card{min-height:0}}
 
 
-/* SentinelIoT visual refresh */
-:root{--ink:#e8eef8;--muted:#9aa9bd;--line:#26364c;--surface:#111e30;--canvas:#0a1422;--primary:#58a6ff;--shadow:0 14px 36px rgba(0,0,0,.18)}
-body,.shell{background:var(--canvas);color:var(--ink)}
-.sidebar{background:#0d1929;border-color:#203149;box-shadow:8px 0 30px rgba(0,0,0,.12)}
-.brand b{color:#f0f5fc}.brand small,.side-label{color:#7f91aa}
-.nav-item{color:#a7b5c9}.nav-item.active{background:#172d49;color:#83b9ff;box-shadow:inset 3px 0 #58a6ff}
-.nav-item:hover:not(.active){background:#14243a;color:#e4efff}
-.sidebar-bottom{background:#111f32;border-color:#263850;color:#c1ccda}
-.main{color:#e8eef8}
-.topbar h1{color:#f1f5fb}.topbar p,.panel-heading p{color:#9aabc0}
-.eyebrow{color:#7e91aa}
-.status-pill{background:#102e2a;color:#65d6ae;border-color:#1d5949}
-.status-pill.offline{background:#351e29;color:#ff9da7;border-color:#63313e}
-.icon-button,.btn{background:#15243a;border-color:#2b405b;color:#c7d5e8}
-.icon-button:hover{background:#1c304a;border-color:#4774a6;color:#9bc8ff}
-.notice{background:#332a19;border-color:#66502a;color:#f1c879}
-.demo-banner{background:linear-gradient(115deg,#132945,#14283a 65%,#12302f);border-color:#294766;box-shadow:none}
-.demo-banner b{color:#eaf3ff}.demo-banner span{color:#a7bad1}
-.btn.subtle{background:#172b45;border-color:#35577e;color:#9bc7ff}
-.btn.warning{background:#342b1b;border-color:#66502b;color:#f0c879}
-.btn.danger{background:#351f2b;border-color:#663343;color:#ff9eac}
-.stat-card,.panel{background:var(--surface);border-color:var(--line);box-shadow:var(--shadow)}
-.stat-top{color:#9aaac0}.stat-card strong{color:#f0f5fc}.stat-card small{color:#8497b0}
-.panel-heading h2{color:#e8f0fb}
-.tag,.detector{background:#172d49;color:#8fc1ff}
-.empty-chart{color:#7d91aa}.empty-chart b{color:#c3d1e3}.empty-chart span{color:#8498b1}
-.device-orb{background:linear-gradient(145deg,#172d49,#15332f);border-color:#2d4b69;color:#80baff}
-.device-visual b{color:#e6eef9}.device-visual span{color:#96a9c0}
-.device-meta{border-color:#26364c}.device-meta span{color:#91a3ba}.device-meta b{color:#d0dbea}
-.muted-note{background:#142238;border-color:#293d58;color:#9aadc5}
-th{background:#142238;color:#93a7c1;border-color:#2b3b52}
-td{color:#c0cddd;border-color:#25364c}
-tbody tr:hover{background:#16263c}
-.event-badge.good{background:#123329;color:#69d8ae}.event-badge.bad{background:#3a202b;color:#ff9eac}.event-badge.neutral{background:#253247;color:#b5c3d6}
-.empty-row{color:#8ea1ba}
-footer{color:#71859f}
-.ml-result{background:#112e2b;border-color:#24584f;color:#b5ded5}.ml-result b{color:#71d8bd}.ml-result span{color:#a1c9c0}
-.page-note{background:#142943;border-color:#2a4a70;color:#8fc1ff}.page-note b{color:#c3dcff}.page-note span{color:#9eb3cd}
-.architecture-step{border-color:#293a51}.architecture-step>span{background:#193453;color:#91c4ff}.architecture-step b{color:#d9e6f5}.architecture-step small{color:#91a5bf}
-.lab-warning{background:#332a1b;border-color:#66502c;color:#f1c879}.lab-warning b{color:#f4d28e}.lab-warning span{color:#d0bd98}
-.lab-kind.good{background:#123329;color:#69d8ae}.lab-kind.warn{background:#382d1b;color:#f0c879}.lab-kind.blue{background:#172d49;color:#8fc1ff}.lab-local{background:#202e41;color:#9eb0c6}
-.lab-card h3{color:#e5eef9}.lab-card p{color:#9bacc2}.lab-command{background:#142238;border-color:#2b3d56;color:#c3d2e4}
-@media(max-width:760px){.sidebar{background:#0d1929}}
+/* SentinelIoT product UI — cool-clay neumorphic system */
+:root{
+  color-scheme:light;
+  --ink:#3d4852;--muted:#6b7280;--line:transparent;--surface:#e0e5ec;--canvas:#e0e5ec;
+  --primary:#6c63ff;--primary-soft:#eeedff;--teal:#238f89;--green:#21866c;
+  --red:#bd4c5b;--amber:#94651b;
+  --shadow:9px 9px 16px rgba(163,177,198,.60),-9px -9px 16px rgba(255,255,255,.55);
+  font-family:'DM Sans',sans-serif;
+}
+body,.shell{background:#e0e5ec;color:#3d4852}
+.sidebar{background:#e0e5ec;border:0;border-right:1px solid rgba(163,177,198,.25);box-shadow:5px 0 18px rgba(163,177,198,.18);padding:28px 18px}
+.brand{padding-bottom:38px}
+.brand-mark{background:linear-gradient(145deg,#817aff,#6259ed);border-radius:14px;box-shadow:5px 5px 10px rgba(163,177,198,.55),-5px -5px 10px rgba(255,255,255,.55)}
+.brand b,.topbar h1{color:#3d4852}
+.brand small,.side-label,.eyebrow{color:#6b7280}
+.nav-item{color:#596571;border-radius:14px;transition:all .3s ease}
+.nav-item.active{background:#e0e5ec;color:#5d55df;box-shadow:inset 4px 4px 8px rgba(163,177,198,.55),inset -4px -4px 8px rgba(255,255,255,.65)}
+.nav-item:hover:not(.active){background:#e0e5ec;color:#5149d2;box-shadow:5px 5px 10px rgba(163,177,198,.35),-5px -5px 10px rgba(255,255,255,.45)}
+.sidebar-bottom{background:#e0e5ec;border:0;border-radius:16px;box-shadow:inset 4px 4px 8px rgba(163,177,198,.45),inset -4px -4px 8px rgba(255,255,255,.6);color:#3d4852}
+.main{color:#3d4852;padding-top:38px}
+.topbar h1{font-size:30px;letter-spacing:-1.1px}
+.topbar p,.panel-heading p{color:#6b7280}
+.status-pill{background:#e0e5ec;color:#21866c;border:0;box-shadow:inset 3px 3px 6px rgba(163,177,198,.45),inset -3px -3px 6px rgba(255,255,255,.55)}
+.status-pill.offline{background:#e0e5ec;color:#bd4c5b}
+.icon-button,.btn{background:#e0e5ec;border:0;color:#3d4852;border-radius:14px;box-shadow:5px 5px 10px rgba(163,177,198,.55),-5px -5px 10px rgba(255,255,255,.6);transition:all .3s ease}
+.icon-button:hover,.btn:hover:not(:disabled){background:#e0e5ec;transform:translateY(-1px);box-shadow:7px 7px 13px rgba(163,177,198,.6),-7px -7px 13px rgba(255,255,255,.65)}
+.btn:active:not(:disabled){transform:translateY(1px);box-shadow:inset 3px 3px 6px rgba(163,177,198,.55),inset -3px -3px 6px rgba(255,255,255,.55)}
+.btn.subtle{background:#e0e5ec;color:#5149d2}
+.btn.warning{background:#e0e5ec;color:#94651b}
+.btn.danger{background:#e0e5ec;color:#bd4c5b}
+.notice,.lab-warning{background:#e0e5ec;border:0;border-radius:16px;box-shadow:inset 4px 4px 8px rgba(163,177,198,.45),inset -4px -4px 8px rgba(255,255,255,.6);color:#805c20}
+.demo-banner{background:#e0e5ec;border:0;border-radius:24px;box-shadow:var(--shadow);padding:24px}
+.demo-banner b{color:#3d4852}.demo-banner span{color:#6b7280}
+.stats-grid{gap:18px}
+.stat-card,.panel{background:#e0e5ec;border:0;border-radius:24px;box-shadow:var(--shadow)}
+.stat-card{padding:21px;transition:transform .3s ease,box-shadow .3s ease}
+.stat-card:hover,.panel:hover{transform:translateY(-2px);box-shadow:12px 12px 20px rgba(163,177,198,.65),-12px -12px 20px rgba(255,255,255,.65)}
+.stat-top{color:#6b7280}
+.icon-wrap{background:#e0e5ec;color:#6c63ff;border-radius:13px;box-shadow:inset 4px 4px 8px rgba(163,177,198,.45),inset -4px -4px 8px rgba(255,255,255,.6)}
+.icon-wrap.green{background:#e0e5ec;color:#21866c}.icon-wrap.red{background:#e0e5ec;color:#bd4c5b}.icon-wrap.purple{background:#e0e5ec;color:#6c63ff}
+.stat-card strong{color:#3d4852}.stat-card small{color:#6b7280}
+.panel-heading h2{color:#3d4852}
+.tag,.detector{background:#e0e5ec;color:#5d55df;box-shadow:inset 2px 2px 4px rgba(163,177,198,.4),inset -2px -2px 4px rgba(255,255,255,.5)}
+.empty-chart{color:#6b7280}.empty-chart b{color:#3d4852}.empty-chart span{color:#6b7280}
+.device-orb{background:#e0e5ec;border:0;border-radius:22px;color:#6c63ff;box-shadow:inset 7px 7px 14px rgba(163,177,198,.55),inset -7px -7px 14px rgba(255,255,255,.65)}
+.device-visual b{color:#3d4852}.device-visual span{color:#6b7280}
+.device-meta{border-color:rgba(163,177,198,.35)}.device-meta span{color:#6b7280}.device-meta b{color:#3d4852}
+.muted-note,.page-note{background:#e0e5ec;border:0;border-radius:15px;box-shadow:inset 4px 4px 8px rgba(163,177,198,.4),inset -4px -4px 8px rgba(255,255,255,.55);color:#6b7280}
+.page-note b,.architecture-step b{color:#3d4852}.page-note span,.architecture-step small{color:#6b7280}
+table{border-collapse:separate;border-spacing:0}
+th{background:transparent;color:#6b7280;border-color:rgba(163,177,198,.4)}
+td{color:#3d4852;border-color:rgba(163,177,198,.3)}
+tbody tr:hover{background:rgba(255,255,255,.22)}
+.event-badge.good{background:#dceee7;color:#176b55}.event-badge.bad{background:#f4dfe2;color:#9f3545}.event-badge.neutral{background:#e0e5ec;color:#596571}
+.empty-row,footer{color:#6b7280}
+.ml-result{background:#e0e5ec;border:0;border-radius:16px;box-shadow:inset 4px 4px 8px rgba(163,177,198,.4),inset -4px -4px 8px rgba(255,255,255,.55);color:#3d4852}
+.ml-result b{color:#21866c}.ml-result span{color:#596f69}
+.lab-kind.good,.lab-kind.warn,.lab-kind.blue,.lab-local{background:#e0e5ec;color:#596571;box-shadow:inset 2px 2px 4px rgba(163,177,198,.35),inset -2px -2px 4px rgba(255,255,255,.5)}
+.lab-card h3{color:#3d4852}.lab-card p{color:#6b7280}.lab-command{background:#e0e5ec;border:0;color:#3d4852;box-shadow:inset 4px 4px 8px rgba(163,177,198,.4),inset -4px -4px 8px rgba(255,255,255,.55)}
+.architecture-step{border-color:rgba(163,177,198,.35)}.architecture-step>span{background:#e0e5ec;color:#6c63ff;box-shadow:inset 3px 3px 6px rgba(163,177,198,.4),inset -3px -3px 6px rgba(255,255,255,.55)}
+.btn:focus-visible,.icon-button:focus-visible,.nav-item:focus-visible{outline:2px solid #6c63ff;outline-offset:3px}
+@media(max-width:760px){
+  .shell{display:block}
+  .sidebar{display:flex;width:100%;padding:12px 14px;position:sticky;top:0;z-index:20;box-shadow:0 5px 14px rgba(163,177,198,.25);border:0;border-bottom:1px solid rgba(163,177,198,.25)}
+  .brand{padding:0 4px 10px}
+  .side-label,.sidebar-bottom{display:none}
+  .sidebar .nav-item{width:auto;display:inline-flex;white-space:nowrap;padding:10px 12px;margin:0 3px 0 0;font-size:11px}
+  .sidebar{flex-direction:row;align-items:center;flex-wrap:wrap}
+  .sidebar .brand{width:100%}
+  .main{padding:22px 14px}
+  .topbar{flex-direction:column}.top-actions{flex-wrap:wrap}
+  .content-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .stat-card{padding:15px}.stat-card strong{font-size:23px}
+  .demo-buttons{width:100%}.btn{flex:1;justify-content:center}
+  .panel{padding:16px}.demo-banner{padding:18px;border-radius:20px}
+  .panel-heading{align-items:flex-start}.lab-grid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
