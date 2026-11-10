@@ -248,7 +248,7 @@ export default function App() {
         <Stat label="Total activity events" value={activityStats.total} hint="Model inferences + hardware signals" icon={Activity}/>
         <Stat label="Normal signals" value={activityStats.normal} hint="Benign predictions + normal endpoint signals" icon={ShieldCheck} tone="green"/>
         <Stat label="Attack signals" value={activityStats.attacks} hint="Model alerts + triggered endpoint patterns" icon={AlertTriangle} tone="red"/>
-        <Stat label="Arduino endpoint" value={deviceConnected ? "Connected" : "Optional"} hint="Hardware is optional" icon={Cpu} tone="purple"/>
+        <Stat label="Arduino endpoint" value={deviceConnected ? "Connected" : "Offline"} hint="Device connection status" icon={Cpu} tone="purple"/>
       </div>
 
       <div className="content-grid">
@@ -256,9 +256,9 @@ export default function App() {
           {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" name="ML confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)" connectNulls={false} dot={{ r: 5, fill: "#36b7a5", stroke: "#101d2d", strokeWidth: 2 }} activeDot={{ r: 7 }}/>
             <Line type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#f0a34a" strokeWidth={2} connectNulls={false} dot={{ r: 5 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a sample above to populate the activity timeline.</span></div>}
         </article>
-        <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino LED endpoint</h2><p>Physical two-LED demonstration</p></div><Cpu size={19}/></div>
-          <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Not connected · cloud features available"}</span></div>
-          <div className="muted-note">The dashboard and model validation tools work without Arduino. Connect the board and start the local bridge to enable physical endpoint alerts.</div>
+        <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino LED endpoint</h2><p>Hardware monitoring and alert output</p></div><Cpu size={19}/></div>
+          <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Offline"}</span></div>
+          
         </article>
       </div>
 
@@ -314,8 +314,8 @@ export default function App() {
           {chartData.length ? <ResponsiveContainer width="100%" height={270}><AreaChart data={chartData}><defs><linearGradient id="trafficConfidence" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.24}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#e8edf4" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><YAxis domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><Tooltip/><Area type="monotone" dataKey="confidence" stroke="#269d8a" strokeWidth={2.5} fill="url(#trafficConfidence)" dot={{ r: 5, fill: "#269d8a", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No ML samples yet</b><span>Run a sample to see its confidence here.</span></div>}
         </article>
         <div className="panel table-panel">
-          <div className="panel-heading"><div><h2>Optional live Wi-Fi capture</h2><p>Optional local integration · not required for model validation</p></div><span className="tag">OPTIONAL</span></div>
-          <p>To experiment with local packet capture on Windows, install Npcap and Scapy, then run these commands from your cloned repository in PowerShell as Administrator.</p>
+          <div className="panel-heading"><div><h2>Live network capture</h2><p>Local packet inspection and feature extraction</p></div></div>
+          <p>Enable packet capture on Windows with Npcap and Scapy, then run these commands from the project directory in PowerShell as Administrator.</p>
           <pre>py -m pip install -r network/requirements.txt{"\n"}py network/live_capture.py --interface Wi-Fi</pre>
           <p>Capture-only mode prints real packet-derived flow summaries. Experimental feature estimates can be submitted with:</p>
           <pre>py network/live_capture.py --interface Wi-Fi --infer --api https://iot-project-avq0.onrender.com</pre>
@@ -338,8 +338,8 @@ export default function App() {
       </>}
       {page === "device" && <>
         <div className="content-grid">
-          <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino Uno status</h2><p>Optional USB serial hardware bridge</p></div><Cpu size={19}/></div>
-            <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Local USB bridge connected" : "Not connected · cloud features available"}</span></div>
+          <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino Uno status</h2><p>Device connectivity and telemetry</p></div><Cpu size={19}/></div>
+            <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Local USB bridge connected" : "Offline"}</span></div>
             <div className="device-meta"><span>Backend status</span><b>{health?.status || "Unknown"}</b></div>
             <div className="device-meta"><span>Device telemetry</span><b>{deviceConnected ? "Receiving live telemetry" : "Telemetry stale / not received"}</b></div>
             <div className="device-meta"><span>Device ID</span><b>{deviceTelemetry?.device_id || "—"}</b></div>
@@ -349,13 +349,13 @@ export default function App() {
             <div className="device-meta"><span>Serial protocol</span><b>USB · 9600 baud</b></div>
             <div className="muted-note">The hosted dashboard does not need access to your laptop USB port. Start the local Python bridge only when demonstrating physical Arduino alerts.</div>
           </article>
-          <article className="panel"><div className="panel-heading"><div><h2>Optional hardware setup</h2><p>Three-step local connection</p></div><span className="tag">OPTIONAL</span></div>
+          <article className="panel"><div className="panel-heading"><div><h2>Hardware configuration</h2><p>Device connection procedure</p></div></div>
             <div className="architecture-step"><span>01</span><div><b>Connect Arduino Uno</b><small>Upload the SentinelIoT firmware and connect it by USB.</small></div></div>
             <div className="architecture-step"><span>02</span><div><b>Start the local bridge</b><small>Run start_sentineliot.bat on the laptop connected to the board.</small></div></div>
             <div className="architecture-step"><span>03</span><div><b>Demonstrate physical alerts</b><small>Use the Overview LED pattern controls to test the two physical LEDs.</small></div></div>
           </article>
         </div>
-        <div className="page-note"><AlertTriangle size={17}/><div><b>Hardware is optional</b><span>Cloud benchmark validation works without the local bridge. Render cannot access a USB Arduino attached to your laptop.</span></div></div>
+        <div className="page-note"><AlertTriangle size={17}/><div><b>Local hardware connection</b><span>The cloud service communicates with the Arduino through the local USB bridge running on the connected workstation.</span></div></div>
       </>}
     </section>
   </main>;
