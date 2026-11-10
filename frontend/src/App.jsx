@@ -173,22 +173,39 @@ export default function App() {
     attacks: alerts.filter(x => x.status === "suspicious" || x.status === "hardware-triggered").length
   }), [alerts]);
 
-  const chartData = useMemo(() => [...alerts]
-    .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
-    .slice(-20)
-    .map(x => {
-      const rawConfidence = x.confidence == null ? NaN : Number.parseFloat(String(x.confidence).replace("%", ""));
-      const confidence = Number.isFinite(rawConfidence)
-        ? Math.max(0, Math.min(100, Math.round(rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence)))
-        : null;
-      return {
-        name: new Date(x.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-        activity: x.display_label || x.model_prediction || x.attack_type || x.scenario || "Event",
-        confidence,
-        eventCount: 1,
-        hardwareSignal: x.event_type === "hardware" || x.source === "dashboard-hardware-demo" ? 100 : null
-      };
-    }), [alerts]);
+  const chartData = useMemo(() => {
+    const buckets = new Map();
+    [...alerts]
+      .filter(x => Number.isFinite(Date.parse(x.timestamp)))
+      .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
+      .slice(-100)
+      .forEach(event => {
+        const timestamp = Date.parse(event.timestamp);
+        const bucketTime = Math.floor(timestamp / 30000) * 30000;
+        const key = String(bucketTime);
+        if (!buckets.has(key)) buckets.set(key, {
+          bucketTime, eventCount: 0, hardwareCount: 0, confidenceTotal: 0, confidenceCount: 0
+        });
+        const bucket = buckets.get(key);
+        bucket.eventCount += 1;
+        if (event.event_type === "hardware" || event.source === "dashboard-hardware-demo" || event.source === "dashboard-hardware-command") {
+          bucket.hardwareCount += 1;
+        } else if (event.confidence != null) {
+          const raw = Number.parseFloat(String(event.confidence).replace("%", ""));
+          if (Number.isFinite(raw)) {
+            const value = Math.max(0, Math.min(100, raw <= 1 ? raw * 100 : raw));
+            bucket.confidenceTotal += value;
+            bucket.confidenceCount += 1;
+          }
+        }
+      });
+    return [...buckets.values()].map(bucket => ({
+      name: new Date(bucket.bucketTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      eventCount: bucket.eventCount,
+      hardwareCount: bucket.hardwareCount,
+      confidence: bucket.confidenceCount ? Math.round(bucket.confidenceTotal / bucket.confidenceCount) : null
+    }));
+  }, [alerts]);
 
   async function copyCommand(scenario) {
     const command = `python network/traffic_generator.py --scenario ${scenario}`;
@@ -263,9 +280,9 @@ export default function App() {
                 <YAxis yAxisId="confidence" domain={[0,100]} tickFormatter={v => `${v}%`} tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false}/>
                 <YAxis yAxisId="events" orientation="right" allowDecimals={false} hide/>
                 <Tooltip contentStyle={{ background: "#e0e5ec", border: "none", borderRadius: 12, color: "#3d4852", boxShadow: "5px 5px 12px rgba(163,177,198,.5)" }}/>
-                <Bar yAxisId="events" dataKey="eventCount" name="Recorded events" fill="#a6a0ff" radius={[5,5,0,0]} barSize={14}/>
+                <Bar yAxisId="events" dataKey="eventCount" name="Events / 30 sec" fill="#a6a0ff" radius={[5,5,0,0]} barSize={18}/>
                 <Area yAxisId="confidence" type="monotone" dataKey="confidence" name="ML confidence" stroke="#238f89" strokeWidth={2.5} fill="#38b2ac" fillOpacity={0.18} connectNulls dot={{ r: 4, fill: "#238f89" }} activeDot={{ r: 6 }}/>
-                <Line yAxisId="confidence" type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#bd4c5b" strokeWidth={2} connectNulls dot={{ r: 4, fill: "#bd4c5b" }} activeDot={{ r: 6 }}/>
+                <Line yAxisId="events" type="monotone" dataKey="hardwareCount" name="Hardware signals" stroke="#bd4c5b" strokeWidth={2} connectNulls dot={{ r: 4, fill: "#bd4c5b" }} activeDot={{ r: 6 }}/>
               </ComposedChart>
             </ResponsiveContainer>
           </div> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a model sample or hardware test to populate the timeline.</span></div>}
