@@ -204,11 +204,11 @@ export default function App() {
       <button className={`nav-item ${page === "lab" ? "active" : ""}`} onClick={() => setPage("lab")}><FlaskConical size={17}/> Attack Lab</button>
       <button className={`nav-item ${page === "alerts" ? "active" : ""}`} onClick={() => setPage("alerts")}><ShieldAlert size={17}/> Threat alerts</button>
       <button className={`nav-item ${page === "device" ? "active" : ""}`} onClick={() => setPage("device")}><Cpu size={17}/> Device endpoint</button>
-      <div className="sidebar-bottom"><div className="live-dot"/> Cloud monitoring <small>Hardware optional</small></div>
+      <div className="sidebar-bottom"><div className="live-dot"/> Cloud monitoring <small>Endpoint status</small></div>
     </aside>
 
     <section className="main">
-      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",lab:"Attack Lab",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor network activity, review model outputs, and manage connected endpoints.",traffic:"Explore benchmark inference and optional local network capture.",lab:"Evaluate controlled traffic scenarios with the hosted model.",alerts:"Review and export recorded security events.",device:"Connect optional Arduino hardware for physical alerts."})[page]}</p></div>
+      <header className="topbar"><div><div className="eyebrow">SECURITY OPERATIONS CENTER / {page.toUpperCase()}</div><h1>{({overview:"Network security overview",traffic:"Traffic monitor",lab:"Attack Lab",alerts:"Threat alerts",device:"Device endpoint"})[page]}</h1><p>{({overview:"Monitor network activity, review model outputs, and manage connected endpoints.",traffic:"Inspect network traffic and evaluate model predictions.",lab:"Evaluate controlled traffic scenarios with the hosted model.",alerts:"Review and export recorded security events.",device:"Monitor device connectivity, telemetry, and physical alert output."})[page]}</p></div>
         <div className="top-actions"><span className={health ? "status-pill online" : "status-pill offline"}><i/> {health ? "Cloud backend online" : "Connecting to cloud"}</span><span className={modelHealth?.status === "ok" ? "status-pill online" : "status-pill offline"}><i/> {modelHealth?.status === "ok" ? "ML service online" : "ML service unavailable"}</span><button className="icon-button" onClick={refresh} title="Refresh"><RefreshCw size={17}/></button></div>
       </header>
 
@@ -291,7 +291,7 @@ export default function App() {
           <p className="lab-hint">{labResult.feature_note}</p>
           <details><summary>View the 20 submitted features</summary><pre>{JSON.stringify(labResult.features,null,2)}</pre></details>
         </article>}
-        <div className="page-note"><Wifi size={17}/><div><b>What appears in the dashboard?</b><span>Each successful run calls the hosted ML API and records its returned classification. Arduino alerts require the optional local serial bridge; synthetic feature predictions are not validated live-network detections.</span></div></div>
+        <div className="page-note"><Wifi size={17}/><div><b>What appears in the dashboard?</b><span>Each successful run calls the hosted ML API and records its returned classification. Arduino alerts are relayed through the local serial bridge. Synthetic feature predictions are identified separately from captured network traffic.</span></div></div>
       </>}
       {page === "traffic" && <>
         {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
