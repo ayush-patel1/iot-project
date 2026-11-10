@@ -41,7 +41,8 @@ class DeviceTelemetry(BaseModel):
     uptime_ms: int
     led_state: Literal["on", "off", "green", "red"]
     alarm_state: bool = False
-    firmware: str = "sentinel-uno-v1"
+    attack_type: str = "normal"
+    firmware: str = "sentinel-uno-v3"
 
 @app.on_event("startup")
 def startup():
@@ -210,15 +211,16 @@ def receive_device_telemetry(data: DeviceTelemetry):
 
 
 class HardwareDemoCommand(BaseModel):
-    state: Literal["normal", "attack"]
+    command: Literal["N", "A", "DOS", "DDOS", "SCAN", "BRUTE", "BOTNET"]
 
 @app.post("/device/demo-command")
 def queue_hardware_demo_command(data: HardwareDemoCommand):
-    """Queue a clearly labelled demo playback command for the local Arduino bridge."""
+    """Queue a labelled LED-only hardware demo command for the local USB bridge."""
     global next_hardware_command_id
-    command = {"id": next_hardware_command_id, "state": data.state,
-               "command": "N" if data.state == "normal" else "A",
-               "source": "dashboard-demo-playback"}
+    command = {"id": next_hardware_command_id, "command": data.command,
+               "state": "normal" if data.command == "N" else "attack",
+               "attack_type": "normal" if data.command == "N" else data.command.lower(),
+               "source": "dashboard-hardware-demo"}
     next_hardware_command_id += 1
     hardware_commands.append(command)
     return {"status": "queued", "command": command}
