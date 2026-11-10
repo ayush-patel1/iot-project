@@ -57,7 +57,7 @@ def startup():
 def notify_arduino(status: str):
     if arduino is not None:
         with serial_lock:
-            arduino.write(b"A" if status == "suspicious" else b"N")
+            arduino.write(b"A\n" if status == "suspicious" else b"N\n")
 
 def upstream(method: str, path: str, **kwargs):
     try:
