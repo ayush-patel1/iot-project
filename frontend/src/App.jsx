@@ -207,6 +207,24 @@ export default function App() {
     }));
   }, [alerts]);
 
+  // Plot each model inference separately. Do not reuse the activity timeline's
+  // 30-second averages here, because averaging can hide per-sample differences.
+  const confidenceChartData = useMemo(() => [...alerts]
+    .filter(event => event.event_type !== "hardware" && event.source !== "dashboard-hardware-demo" && event.source !== "dashboard-hardware-command" && event.confidence != null)
+    .map(event => {
+      const raw = Number.parseFloat(String(event.confidence).replace("%", ""));
+      if (!Number.isFinite(raw)) return null;
+      const confidence = Math.max(0, Math.min(100, raw <= 1 ? raw * 100 : raw));
+      return {
+        name: new Date(event.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        confidence,
+        source: event.source || "ML inference",
+        prediction: event.model_prediction || event.attack_type || event.prediction || "Prediction"
+      };
+    })
+    .filter(Boolean)
+    .reverse(), [alerts]);
+
   async function copyCommand(scenario) {
     const command = `python network/traffic_generator.py --scenario ${scenario}`;
     try { await navigator.clipboard.writeText(command); setCopiedScenario(scenario); }
@@ -342,7 +360,7 @@ export default function App() {
           <Stat label="Inference model" value="LightGBM" hint="Hosted CIC-IoT-2023" icon={Cpu} tone="purple"/>
         </div>
         <article className="panel chart-panel"><div className="panel-heading"><div><h2>Prediction confidence</h2><p>Confidence percentage for recent ML samples</p></div><span className="tag">AUTO REFRESH</span></div>
-          {chartData.length ? <ResponsiveContainer width="100%" height={270}><AreaChart data={chartData}><defs><linearGradient id="trafficConfidence" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.24}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#e8edf4" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><YAxis domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><Tooltip/><Area type="monotone" dataKey="confidence" stroke="#269d8a" strokeWidth={2.5} fill="url(#trafficConfidence)" dot={{ r: 5, fill: "#269d8a", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No ML samples yet</b><span>Run a sample to see its confidence here.</span></div>}
+          {confidenceChartData.length ? <ResponsiveContainer width="100%" height={270}><AreaChart data={confidenceChartData}><defs><linearGradient id="trafficConfidence" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.24}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#e8edf4" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><YAxis domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"#8292a8",fontSize:11}} axisLine={false} tickLine={false}/><Tooltip formatter={(value, name) => [`${Number(value).toFixed(1)}%`, name]} labelFormatter={(label, payload) => payload?.[0]?.payload ? `${label} · ${payload[0].payload.prediction}` : label}/><Area type="linear" dataKey="confidence" stroke="#269d8a" strokeWidth={2.5} fill="url(#trafficConfidence)" dot={{ r: 5, fill: "#269d8a", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No ML samples yet</b><span>Run a sample to see its confidence here.</span></div>}
         </article>
         <div className="panel table-panel">
           <div className="panel-heading"><div><h2>Live network capture</h2><p>Local packet inspection and feature extraction</p></div></div>
