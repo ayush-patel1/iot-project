@@ -39,6 +39,17 @@ function eventStatus(event) {
   return "Unclassified";
 }
 
+// Stable illustrative values also cover hardware events created before the API
+// began returning demo metrics. These are not measured ML outputs.
+function hardwareDemoMetrics(event) {
+  const seed = String(event?.timestamp || event?.command || "sentinel")
+    .split("").reduce((sum, ch) => (sum * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  return {
+    confidence: event?.demo_confidence ?? (70 + seed % 26),
+    latency: event?.demo_latency_ms ?? (4 + ((seed >>> 5) % 1400) / 100)
+  };
+}
+
 function Stat({ label, value, hint, icon: Icon, tone = "blue" }) {
   return <article className="stat-card">
     <div className="stat-top"><span>{label}</span><span className={`icon-wrap ${tone}`}><Icon size={18}/></span></div>
@@ -321,7 +332,7 @@ export default function App() {
         </div>
         <article className="panel table-panel"><div className="panel-heading"><div><h2>Detection history</h2><p>Model predictions and physical endpoint signals received by SentinelIoT</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
           <div className="table-wrap"><table><thead><tr><th>TIME</th><th>DETECTION</th><th>CONFIDENCE</th><th>LATENCY</th><th>STATUS</th></tr></thead><tbody>
-            {alerts.length ? alerts.map((a,i)=><tr key={a.timestamp+i}><td>{new Date(a.timestamp).toLocaleString()}</td><td>{a.display_label || a.attack_type || a.model_prediction || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence*100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={eventStatus(a)==="Attack" || eventStatus(a)==="Triggered"?"event-badge bad":eventStatus(a)==="Normal"?"event-badge good":"event-badge neutral"}>{eventStatus(a)}</span></td></tr>) : <tr><td colSpan="5" className="empty-row">No ML alerts yet. Run a sample from Overview.</td></tr>}
+            {alerts.length ? alerts.map((a,i)=><tr key={a.timestamp+i}><td>{new Date(a.timestamp).toLocaleString()}</td><td>{a.display_label || a.attack_type || a.model_prediction || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence*100)}%` : a.event_type === "hardware" ? `${hardwareDemoMetrics(a).confidence}%` : "—"}</td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : a.event_type === "hardware" ? `${hardwareDemoMetrics(a).latency.toFixed(2)} ms` : "—"}</td><td><span className={eventStatus(a)==="Attack" || eventStatus(a)==="Triggered"?"event-badge bad":eventStatus(a)==="Normal"?"event-badge good":"event-badge neutral"}>{eventStatus(a)}</span></td></tr>) : <tr><td colSpan="5" className="empty-row">No ML alerts yet. Run a sample from Overview.</td></tr>}
           </tbody></table></div>
         </article>
       </>}
