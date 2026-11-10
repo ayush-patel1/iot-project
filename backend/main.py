@@ -223,7 +223,20 @@ def queue_hardware_demo_command(data: HardwareDemoCommand):
                "source": "dashboard-hardware-demo"}
     next_hardware_command_id += 1
     hardware_commands.append(command)
-    return {"status": "queued", "command": command}
+
+    # Record manual LED playback in the same activity feed as model inferences.
+    # It is explicitly a demo event and carries no ML confidence score.
+    labels = {"N": "Normal", "A": "Generic attack", "DOS": "DoS", "DDOS": "DDoS",
+              "SCAN": "Port scan", "BRUTE": "Brute force", "BOTNET": "Botnet"}
+    event = {"timestamp": datetime.now(timezone.utc).isoformat(),
+             "source": "dashboard-hardware-demo", "scenario": "manual-led-test",
+             "status": "unclassified", "model_prediction": None,
+             "attack_type": labels[data.command], "display_label": labels[data.command],
+             "command": data.command, "confidence": None, "latency_ms": None,
+             "model": "hardware-demo"}
+    events.appendleft(event)
+    print(f"[SentinelIoT] Dashboard hardware demo queued: {labels[data.command]} ({data.command})")
+    return {"status": "queued", "command": command, "sentinel_event": event}
 
 @app.get("/device/commands")
 def get_hardware_commands(after_id: int = 0):
