@@ -76,8 +76,31 @@ def main():
                         if not event_id or event_id in seen_alerts:
                             continue
                         seen_alerts.add(event_id)
+
+                        # Dashboard manual LED commands are already delivered through
+                        # /device/commands; do not send them a second time from /alerts.
+                        if event.get("source") == "dashboard-hardware-demo":
+                            continue
                         if event.get("source") == "pretrained-ciciot2023-demo":
                             continue
+
+                        # Attack Lab scenarios deliberately play a matching LED
+                        # pattern as part of the demo, even when model output is
+                        # unclassified or differs from the scenario's expected label.
+                        lab_commands = {
+                            "normal": "N",
+                            "burst": "DDOS",
+                            "failed_requests": "BRUTE",
+                            "large_payload": "DOS",
+                        }
+                        if event.get("source") == "attack-lab-synthetic-http-flow":
+                            scenario = event.get("scenario")
+                            command = lab_commands.get(scenario)
+                            if command:
+                                board.write((command + "\n").encode("ascii"))
+                                print(f"Attack Lab demo: {scenario} -> Arduino {command}")
+                            continue
+
                         status = event.get("status")
                         if status in {"suspicious", "normal"}:
                             board.write((("A" if status == "suspicious" else "N") + "\n").encode("ascii"))
