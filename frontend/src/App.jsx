@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, Cpu, Download, Radio, RefreshCw, ShieldCheck, ShieldAlert, Wifi, FlaskConical, Copy, Check } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 // Use the hosted backend by default so the deployed dashboard works without
 // requiring users to start a local API. Local development can override this.
@@ -185,6 +185,7 @@ export default function App() {
         name: new Date(x.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
         activity: x.display_label || x.model_prediction || x.attack_type || x.scenario || "Event",
         confidence,
+        eventCount: 1,
         hardwareSignal: x.event_type === "hardware" || x.source === "dashboard-hardware-demo" ? 100 : null
       };
     }), [alerts]);
@@ -254,8 +255,20 @@ export default function App() {
 
       <div className="content-grid">
         <article className="panel chart-panel"><div className="panel-heading"><div><h2>Security activity timeline</h2><p>ML confidence and hardware signal events</p></div><span className="tag">AUTO REFRESH</span></div>
-          {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" name="ML confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)" connectNulls={true} dot={{ r: 5, fill: "#36b7a5", stroke: "#101d2d", strokeWidth: 2 }} activeDot={{ r: 7 }}/>
-            <Line type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#f0a34a" strokeWidth={2} connectNulls={true} dot={{ r: 5, fill: "#f0a34a" }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a sample above to populate the activity timeline.</span></div>}
+          {chartData.length ? <div className="activity-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 12, right: 8, left: -12, bottom: 4 }}>
+                <CartesianGrid stroke="rgba(107,114,128,.22)" strokeDasharray="4 4" vertical={false}/>
+                <XAxis dataKey="name" tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={18}/>
+                <YAxis yAxisId="confidence" domain={[0,100]} tickFormatter={v => `${v}%`} tick={{ fill: "#6b7280", fontSize: 10 }} axisLine={false} tickLine={false}/>
+                <YAxis yAxisId="events" orientation="right" allowDecimals={false} hide/>
+                <Tooltip contentStyle={{ background: "#e0e5ec", border: "none", borderRadius: 12, color: "#3d4852", boxShadow: "5px 5px 12px rgba(163,177,198,.5)" }}/>
+                <Bar yAxisId="events" dataKey="eventCount" name="Recorded events" fill="#a6a0ff" radius={[5,5,0,0]} barSize={14}/>
+                <Area yAxisId="confidence" type="monotone" dataKey="confidence" name="ML confidence" stroke="#238f89" strokeWidth={2.5} fill="#38b2ac" fillOpacity={0.18} connectNulls dot={{ r: 4, fill: "#238f89" }} activeDot={{ r: 6 }}/>
+                <Line yAxisId="confidence" type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#bd4c5b" strokeWidth={2} connectNulls dot={{ r: 4, fill: "#bd4c5b" }} activeDot={{ r: 6 }}/>
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Run a model sample or hardware test to populate the timeline.</span></div>}
         </article>
         <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino LED endpoint</h2><p>Hardware monitoring and alert output</p></div><Cpu size={19}/></div>
           <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Offline"}</span></div>
