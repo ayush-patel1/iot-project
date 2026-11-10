@@ -17,9 +17,11 @@ MODEL_API = os.getenv("SENTINEL_MODEL_API", "https://tbommawa-iot-ids-api.hf.spa
 TIMEOUT = float(os.getenv("MODEL_API_TIMEOUT", "25"))
 app = FastAPI(title="SentinelIoT API", version="0.2.0")
 allowed_origins = [origin.strip().rstrip("/") for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin.strip()]
-allowed_origins += ["http://127.0.0.1:5173", "http://localhost:5173"]
+allowed_origins += ["https://sentineliot.netlify.app", "http://127.0.0.1:5173", "http://localhost:5173"]
 app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 events: deque[dict] = deque(maxlen=500)
+hardware_commands: deque[dict] = deque(maxlen=200)
+next_hardware_command_id = 1
 latest_device_telemetry: dict | None = None
 serial_lock = threading.Lock()
 arduino = None
@@ -37,7 +39,8 @@ class LabRequest(BaseModel):
 class DeviceTelemetry(BaseModel):
     device_id: str
     uptime_ms: int
-    led_state: Literal["on", "off"]
+    led_state: Literal["on", "off", "green", "red"]
+    alarm_state: bool = False
     firmware: str = "sentinel-uno-v1"
 
 @app.on_event("startup")
@@ -204,6 +207,25 @@ def receive_device_telemetry(data: DeviceTelemetry):
     global latest_device_telemetry
     latest_device_telemetry = {**data.model_dump(), "received_at": datetime.now(timezone.utc).isoformat(), "connected": True}
     return {"status": "received", "device": latest_device_telemetry}
+
+
+class HardwareDemoCommand(BaseModel):
+    state: Literal["normal", "attack"]
+
+@app.post("/device/demo-command")
+def queue_hardware_demo_command(data: HardwareDemoCommand):
+    """Queue a clearly labelled demo playback command for the local Arduino bridge."""
+    global next_hardware_command_id
+    command = {"id": next_hardware_command_id, "state": data.state,
+               "command": "N" if data.state == "normal" else "A",
+               "source": "dashboard-demo-playback"}
+    next_hardware_command_id += 1
+    hardware_commands.append(command)
+    return {"status": "queued", "command": command}
+
+@app.get("/device/commands")
+def get_hardware_commands(after_id: int = 0):
+    return [command for command in hardware_commands if command["id"] > after_id]
 
 @app.get("/device/telemetry")
 def get_device_telemetry():
