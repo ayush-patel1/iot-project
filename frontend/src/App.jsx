@@ -35,6 +35,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [mlBusy, setMlBusy] = useState(false);
   const [mlResult, setMlResult] = useState(null);
+  const [hardwareStatus, setHardwareStatus] = useState("");
   const [copiedScenario, setCopiedScenario] = useState("");
   const [labBusy, setLabBusy] = useState("");
   const [labResult, setLabResult] = useState(null);
@@ -69,6 +70,18 @@ export default function App() {
         expected_prediction: data.sentinel_event?.expected_prediction,
         test_result: data.sentinel_event?.test_result
       });
+      // Demo playback uses the benchmark label only to demonstrate hardware; it does not alter ML output.
+      const demoState = data.sentinel_event?.expected_prediction?.toLowerCase();
+      if (demoState === "benign" || demoState === "attack") {
+        const hw = await fetch(`${API}/device/demo-command`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: demoState === "benign" ? "normal" : "attack" })
+        });
+        if (!hw.ok) throw new Error("ML sample ran, but the Arduino demo command could not be queued.");
+        setHardwareStatus(demoState === "benign" ? "Normal demo signal queued for Arduino (green LED)." : "Attack demo signal queued for Arduino (red LED + buzzer).");
+      } else {
+        setHardwareStatus("No benchmark label was available; no Arduino demo signal was sent.");
+      }
       await refresh();
     } catch (e) { setError(e.message); }
     finally { setMlBusy(false); }
@@ -133,7 +146,7 @@ export default function App() {
           <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">{mlBusy ? "Running…" : "Simulate attack"}</button>
           <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Try another attack</button>
         </div>
-        {mlResult && <div className="ml-result"><b>Benchmark label: {mlResult.expected_prediction || "—"}</b><span>Model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Model output differs from the benchmark label. The raw result is shown without modification.</span>}</div>}
+        {mlResult && <div className="ml-result"><b>Benchmark label: {mlResult.expected_prediction || "—"}</b><span>Model output: {mlResult.prediction} · Confidence: {Math.round((mlResult.confidence || 0) * 100)}% · {mlResult.model} · {mlResult.latency_ms} ms</span>{mlResult.test_result === "mismatch" && <span>Model output differs from the benchmark label. The raw result is shown without modification.</span>}{hardwareStatus && <span>{hardwareStatus} This is demo playback, not a confirmed ML detection.</span>}</div>}
       </div>
 
       <div className="stats-grid">
