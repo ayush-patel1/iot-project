@@ -276,3 +276,23 @@ tbody tr:hover{background:#1a2940!important}
 .empty-chart,.empty-chart b{color:#b8c5d8!important}
 .hardware-demo{border-color:#2a384d!important}
 .btn:focus-visible,.icon-button:focus-visible,.nav-item:focus-visible{outline:2px solid #8b83ff!important}
+
+
+/* Enforce dark mode across every dashboard surface */
+:root,html,body,#root,.shell,.main{background-color:#0b1220!important;color:#e6edf7!important;color-scheme:dark!important}
+.sidebar,.topbar,.demo-banner,.hardware-demo,.panel,.stat-card,
+.endpoint-panel,.chart-panel,.table-panel,.lab-card,.device-visual,
+.table-wrap{background-color:#111c2d!important;color:#e6edf7!important}
+.panel,.stat-card,.demo-banner{border:1px solid #26364d!important}
+h1,h2,h3,h4,b,strong,th,td,label{color:inherit}
+.topbar h1,.panel-heading h2,.stat-card strong,.demo-banner b,
+.device-visual b,.lab-card h3{color:#edf2fb!important}
+p,small,.topbar p,.panel-heading p,.demo-banner span,
+.stat-card small,.device-meta span,.device-meta b,
+.lab-card p,footer{color:#a5b3c7!important}
+input,select,textarea,pre,code{background:#0d1726!important;color:#e6edf7!important;border-color:#2b3c54!important}
+button,.btn,.icon-button{background:#1a2940!important;color:#e6edf7!important;border:1px solid #334761!important}
+.btn.subtle{background:#252344!important;color:#c0baff!important}
+.btn.warning{background:#332a1c!important;color:#f2c879!important}
+.btn.danger,.attack-control.attack{background:#35202b!important;color:#ff9aa5!important}
+.attack-control.normal{background:#17342f!important;color:#70dfb9!important}
