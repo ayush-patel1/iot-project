@@ -1,6 +1,6 @@
 """SentinelIoT API with hosted pretrained CIC-IoT inference and Arduino alerts."""
 from __future__ import annotations
-import os, threading
+import os, random, threading
 from collections import deque
 from datetime import datetime, timezone
 from typing import Literal
@@ -233,8 +233,11 @@ def queue_hardware_demo_command(data: HardwareDemoCommand):
              "status": "normal" if is_normal else "hardware-triggered",
              "model_prediction": None, "attack_type": labels[data.command],
              "display_label": labels[data.command], "command": data.command,
-             "confidence": None, "latency_ms": None, "model": "Manual LED control",
-             "event_type": "hardware"}
+             "confidence": None, "latency_ms": None,
+             "demo_confidence": random.randint(70, 95),
+             "demo_latency_ms": round(random.uniform(4.0, 18.0), 2),
+             "model": "Manual LED control", "event_type": "hardware",
+             "metrics_note": "Illustrative demo metrics; not measured model confidence or inference latency."}
     events.appendleft(event)
     print(f"[SentinelIoT] Hardware signal queued: {labels[data.command]} ({data.command})")
     return {"status": "queued", "command": command, "sentinel_event": event}
