@@ -1,73 +1,81 @@
 /*
- * SentinelIoT Arduino Uno hardware alert firmware.
- * Wiring:
- * D8 -> green LED anode; LED cathode -> 220 ohm resistor -> GND
- * D9 -> red LED anode; LED cathode -> 220 ohm resistor -> GND
- * D10 -> active buzzer (+); buzzer (-) -> GND
- * All components share Arduino GND.
- *
- * Serial commands at 9600 baud:
- * N = benign/normal: green ON, red OFF, buzzer OFF
- * A = attack: green OFF, red ON, buzzer sounds for 700 ms
+ * SentinelIoT Arduino Uno LED-only firmware.
+ * Green LED: D8 anode; cathode -> 220 ohm resistor -> GND.
+ * Red LED: D9 anode; cathode -> 220 ohm resistor -> GND.
+ * No buzzer is used.
+ * Serial at 9600 baud, newline-terminated commands:
+ * N, A, DOS, DDOS, SCAN, BRUTE, BOTNET.
  */
-const int greenLed = 8;
-const int redLed = 9;
-const int buzzer = 10;
+const int GREEN_LED = 8;
+const int RED_LED = 9;
 
-bool attackState = false;
-bool buzzerActive = false;
-unsigned long buzzerStarted = 0;
+String currentAttack = "normal";
+String ledState = "green";
+bool alarmState = false;
 unsigned long lastTelemetry = 0;
 
 void setNormal() {
-  attackState = false;
-  buzzerActive = false;
-  digitalWrite(greenLed, HIGH);
-  digitalWrite(redLed, LOW);
-  digitalWrite(buzzer, LOW);
+  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(RED_LED, LOW);
+  currentAttack = "normal";
+  ledState = "green";
+  alarmState = false;
 }
 
-void setAttack() {
-  attackState = true;
-  buzzerActive = true;
-  buzzerStarted = millis();
-  digitalWrite(greenLed, LOW);
-  digitalWrite(redLed, HIGH);
-  digitalWrite(buzzer, HIGH);
+void showAttack(const String& type, int count, int durationMs) {
+  digitalWrite(GREEN_LED, LOW);
+  currentAttack = type;
+  ledState = "red";
+  alarmState = true;
+
+  for (int i = 0; i < count; i++) {
+    digitalWrite(RED_LED, HIGH);
+    delay(durationMs);
+    digitalWrite(RED_LED, LOW);
+    delay(200);
+  }
+  digitalWrite(RED_LED, HIGH);
+}
+
+void processCommand(String cmd) {
+  cmd.trim();
+  cmd.toUpperCase();
+  if (cmd == "N") setNormal();
+  else if (cmd == "A") showAttack("attack", 1, 700);
+  else if (cmd == "DOS") showAttack("dos", 1, 1000);
+  else if (cmd == "DDOS") showAttack("ddos", 2, 200);
+  else if (cmd == "SCAN") showAttack("port_scan", 3, 150);
+  else if (cmd == "BRUTE") showAttack("brute_force", 4, 150);
+  else if (cmd == "BOTNET") showAttack("botnet", 5, 150);
+}
+
+void sendTelemetry() {
+  Serial.print("{\"device_id\":\"SENTINEL_UNO_01\",\"uptime_ms\":");
+  Serial.print(millis());
+  Serial.print(",\"led_state\":\"");
+  Serial.print(ledState);
+  Serial.print("\",\"alarm_state\":");
+  Serial.print(alarmState ? "true" : "false");
+  Serial.print(",\"attack_type\":\"");
+  Serial.print(currentAttack);
+  Serial.println("\",\"firmware\":\"sentinel-uno-v3\"}");
 }
 
 void setup() {
-  pinMode(greenLed, OUTPUT);
-  pinMode(redLed, OUTPUT);
-  pinMode(buzzer, OUTPUT);
-  setNormal();
   Serial.begin(9600);
-  Serial.println("{\"type\":\"status\",\"message\":\"SENTINEL_READY\"}");
+  Serial.setTimeout(100);
+  pinMode(GREEN_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
+  setNormal();
 }
 
 void loop() {
-  while (Serial.available() > 0) {
-    const char command = Serial.read();
-    if (command == 'A') {
-      setAttack();
-    } else if (command == 'N') {
-      setNormal();
-    }
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+    processCommand(cmd);
   }
-
-  if (buzzerActive && millis() - buzzerStarted >= 700) {
-    digitalWrite(buzzer, LOW);
-    buzzerActive = false;
-  }
-
   if (millis() - lastTelemetry >= 2000) {
     lastTelemetry = millis();
-    Serial.print("{\"device_id\":\"SENTINEL_UNO_01\",\"uptime_ms\":");
-    Serial.print(millis());
-    Serial.print(",\"led_state\":\"");
-    Serial.print(attackState ? "red" : "green");
-    Serial.print("\",\"alarm_state\":\"");
-    Serial.print(buzzerActive ? "on" : "off");
-    Serial.println("\",\"firmware\":\"sentinel-uno-v2\"}");
+    sendTelemetry();
   }
 }
