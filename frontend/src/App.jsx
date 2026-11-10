@@ -75,10 +75,10 @@ export default function App() {
       if (demoState === "benign" || demoState === "attack") {
         const hw = await fetch(`${API}/device/demo-command`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ state: demoState === "benign" ? "normal" : "attack" })
+          body: JSON.stringify({ command: demoState === "benign" ? "N" : "A" })
         });
         if (!hw.ok) throw new Error("ML sample ran, but the Arduino demo command could not be queued.");
-        setHardwareStatus(demoState === "benign" ? "Normal demo signal queued for Arduino (green LED)." : "Attack demo signal queued for Arduino (red LED).");
+        setHardwareStatus(demoState === "benign" ? "Normal demo signal queued for Arduino (green LED)." : "Generic attack demo signal queued for Arduino (red LED).");
       } else {
         setHardwareStatus("No benchmark label was available; no Arduino demo signal was sent.");
       }
