@@ -79,7 +79,7 @@ def main():
 
                         # Dashboard manual LED commands are already delivered through
                         # /device/commands; do not send them a second time from /alerts.
-                        if event.get("source") == "dashboard-hardware-demo":
+                        if event.get("source") in {"dashboard-hardware-demo", "dashboard-hardware-command"}:
                             continue
                         if event.get("source") == "pretrained-ciciot2023-demo":
                             continue
