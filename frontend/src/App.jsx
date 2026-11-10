@@ -216,11 +216,6 @@ export default function App() {
       {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
       <div className="demo-banner">
         <div><b>Model validation · CIC-IoT-2023</b><span>Evaluate labelled CIC-IoT-2023 samples with the hosted LightGBM model. Samples 0–4 are benign and 5–9 are attack-labelled. These results validate the inference pipeline; live network capture is configured separately.</span></div>
-        <div className="demo-buttons">
-          <button disabled={mlBusy} onClick={() => runMLDemo(0)} className="btn subtle">{mlBusy ? "Running…" : "Run benign sample"}</button>
-          <button disabled={mlBusy} onClick={() => runMLDemo(5)} className="btn danger">{mlBusy ? "Running…" : "Run attack sample"}</button>
-          <button disabled={mlBusy} onClick={() => runMLDemo(8)} className="btn warning">Run another sample</button>
-        </div>
         <div className="hardware-demo">
           <b>Hardware controls</b>
           <span>Send a signal to the connected Arduino endpoint. Hardware commands are recorded separately from model predictions.</span>
