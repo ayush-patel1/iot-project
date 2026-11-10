@@ -18,7 +18,9 @@ function mergeEvents(current, incoming) {
 }
 
 function predictionLabel(event) {
-  if (event?.source === "dashboard-hardware-demo") return "Demo";
+  if (event?.event_type === "hardware" || event?.source === "dashboard-hardware-demo") {
+    return event?.attack_type || event?.display_label || "Hardware signal";
+  }
   // For labelled provider demo fixtures, show the benchmark's known class in
   // the activity table. The raw model output remains visible in the demo result.
   const raw = event?.source === "pretrained-ciciot2023-demo"
@@ -27,6 +29,13 @@ function predictionLabel(event) {
   const value = String(raw || "").trim().toLowerCase();
   if (value === "attack" || value.includes("attack")) return "Attack";
   if (value === "benign" || value === "normal" || value === "0") return "Benign";
+  return "Unclassified";
+}
+
+function eventStatus(event) {
+  if (event?.event_type === "hardware") return event.status === "normal" ? "Normal" : "Triggered";
+  if (event?.status === "normal") return "Normal";
+  if (event?.status === "suspicious") return "Attack";
   return "Unclassified";
 }
 
@@ -117,7 +126,7 @@ export default function App() {
       if (!response.ok) throw new Error(data.detail || "Could not queue Arduino LED command");
       if (data.sentinel_event) setAlerts(current => mergeEvents(current, [data.sentinel_event]));
       const labels = { N: "Normal / green LED", A: "Generic attack / red LED", DOS: "DoS / one long red blink", DDOS: "DDoS / two red blinks", SCAN: "Port scan / three red blinks", BRUTE: "Brute force / four red blinks", BOTNET: "Botnet / five red blinks" };
-      setHardwareStatus(`Queued hardware demo: ${labels[command]}. Manual pattern test, not an ML detection.`);
+      setHardwareStatus(`Hardware signal queued: ${labels[command]}.`);
     } catch (e) { setError(e.message); }
   }
 
@@ -138,6 +147,11 @@ export default function App() {
   }
 
   const deviceConnected = Boolean(deviceTelemetry?.connected && deviceTelemetry?.received_at && Date.now() - Date.parse(deviceTelemetry.received_at) < 10000);
+  const activityStats = useMemo(() => ({
+    total: alerts.length,
+    normal: alerts.filter(x => x.status === "normal").length,
+    attacks: alerts.filter(x => x.status === "suspicious" || x.status === "hardware-triggered").length
+  }), [alerts]);
 
   const chartData = useMemo(() => [...alerts]
     .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
@@ -146,7 +160,7 @@ export default function App() {
       name: new Date(x.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
       activity: x.display_label || x.model_prediction || x.attack_type || x.scenario || "Event",
       confidence: x.confidence == null ? null : Math.round(x.confidence * 100),
-      hardwareSignal: x.source === "dashboard-hardware-demo" ? 100 : null
+      hardwareSignal: x.event_type === "hardware" || x.source === "dashboard-hardware-demo" ? 100 : null
     })), [alerts]);
 
   async function copyCommand(scenario) {
@@ -206,16 +220,16 @@ export default function App() {
       </div>
 
       <div className="stats-grid">
-        <Stat label="Demo activity events" value={alerts.length} hint="ML inferences + LED tests" icon={Activity}/>
-        <Stat label="Normal events" value={stats.normal ?? 0} hint="Model-classified benign" icon={ShieldCheck} tone="green"/>
-        <Stat label="Suspicious events" value={stats.suspicious ?? 0} hint="Model-classified attack" icon={AlertTriangle} tone="red"/>
+        <Stat label="Total activity events" value={activityStats.total} hint="Model inferences + hardware signals" icon={Activity}/>
+        <Stat label="Normal signals" value={activityStats.normal} hint="Benign predictions + normal endpoint signals" icon={ShieldCheck} tone="green"/>
+        <Stat label="Attack signals" value={activityStats.attacks} hint="Model alerts + triggered endpoint patterns" icon={AlertTriangle} tone="red"/>
         <Stat label="Arduino endpoint" value={deviceConnected ? "Connected" : "Optional"} hint="Not required for cloud demo" icon={Cpu} tone="purple"/>
       </div>
 
       <div className="content-grid">
-        <article className="panel chart-panel"><div className="panel-heading"><div><h2>Demo activity timeline</h2><p>ML confidence and manual LED test events</p></div><span className="tag">AUTO REFRESH</span></div>
+        <article className="panel chart-panel"><div className="panel-heading"><div><h2>Security activity timeline</h2><p>ML confidence and hardware signal events</p></div><span className="tag">AUTO REFRESH</span></div>
           {chartData.length ? <ResponsiveContainer width="100%" height={245}><AreaChart data={chartData}><defs><linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#36b7a5" stopOpacity={0.28}/><stop offset="95%" stopColor="#36b7a5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="name" tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#8292a8", fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip contentStyle={{ background: "#101d2d", border: "1px solid #263a53", borderRadius: 10, color: "#e6eef8" }}/><Area type="monotone" dataKey="confidence" name="ML confidence" stroke="#36b7a5" strokeWidth={2.5} fill="url(#fillRate)" connectNulls={false} dot={{ r: 5, fill: "#36b7a5", stroke: "#101d2d", strokeWidth: 2 }} activeDot={{ r: 7 }}/>
-            <Line type="monotone" dataKey="hardwareSignal" name="Manual LED demo" stroke="#f0a34a" strokeWidth={2} connectNulls={false} dot={{ r: 5 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Click a quick demo button above to run your first sample.</span></div>}
+            <Line type="monotone" dataKey="hardwareSignal" name="Hardware signal" stroke="#f0a34a" strokeWidth={2} connectNulls={false} dot={{ r: 5 }} activeDot={{ r: 7 }}/></AreaChart></ResponsiveContainer> : <div className="empty-chart"><Activity size={25}/><b>No events yet</b><span>Click a quick demo button above to run your first sample.</span></div>}
         </article>
         <article className="panel endpoint-panel"><div className="panel-heading"><div><h2>Arduino LED endpoint</h2><p>Physical two-LED demonstration</p></div><Cpu size={19}/></div>
           <div className="device-visual"><div className="device-orb"><Cpu size={34}/></div><b>Arduino Uno</b><span>{deviceConnected ? "Telemetry bridge connected" : "Not connected · cloud demo still works"}</span></div>
@@ -223,9 +237,9 @@ export default function App() {
         </article>
       </div>
 
-      <article className="panel table-panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Latest ML inferences and manual LED test commands.</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
+      <article className="panel table-panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Latest model inferences and endpoint security signals.</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
         <div className="table-wrap"><table><thead><tr><th>TIME</th><th>DETECTION</th><th>CONFIDENCE</th><th>MODEL</th><th>LATENCY</th><th>STATUS</th></tr></thead><tbody>
-          {alerts.length ? alerts.slice(0, 8).map((a, i) => <tr key={a.timestamp + i}><td>{new Date(a.timestamp).toLocaleTimeString()}</td><td>{a.display_label || a.model_prediction || a.attack_type || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence * 100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={predictionLabel(a) === "Attack" ? "event-badge bad" : predictionLabel(a) === "Benign" ? "event-badge good" : "event-badge neutral"}>{predictionLabel(a)}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No detections yet. Run a quick demo sample above.</td></tr>}
+          {alerts.length ? alerts.slice(0, 8).map((a, i) => <tr key={a.timestamp + i}><td>{new Date(a.timestamp).toLocaleTimeString()}</td><td>{a.display_label || a.attack_type || a.model_prediction || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence * 100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={eventStatus(a) === "Attack" || eventStatus(a) === "Triggered" ? "event-badge bad" : eventStatus(a) === "Normal" ? "event-badge good" : "event-badge neutral"}>{eventStatus(a)}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No detections yet. Run a quick demo sample above.</td></tr>}
         </tbody></table></div>
       </article>
       <footer>SentinelIoT · Educational defensive prototype · Cloud demo uses labelled benchmark samples; live traffic monitoring and Arduino hardware are optional local integrations.</footer>
@@ -286,14 +300,14 @@ export default function App() {
       {page === "alerts" && <>
         {error && <div className="notice"><AlertTriangle size={17}/>{error}</div>}
         <div className="stats-grid">
-          <Stat label="Total predictions" value={alerts.length} hint="Current backend session" icon={Activity}/>
-          <Stat label="Attack alerts" value={alerts.filter(x=>x.status==="suspicious").length} hint="Classified by ML model" icon={ShieldAlert} tone="red"/>
-          <Stat label="Benign samples" value={alerts.filter(x=>x.status==="normal").length} hint="Classified by ML model" icon={ShieldCheck} tone="green"/>
+          <Stat label="Total activity events" value={activityStats.total} hint="Model inferences + hardware signals" icon={Activity}/>
+          <Stat label="Attack signals" value={activityStats.attacks} hint="Model alerts + endpoint triggers" icon={ShieldAlert} tone="red"/>
+          <Stat label="Normal signals" value={activityStats.normal} hint="Benign predictions + normal endpoint signals" icon={ShieldCheck} tone="green"/>
           <Stat label="Detection engine" value="LightGBM" hint="Hosted CIC-IoT-2023 model" icon={Cpu} tone="purple"/>
         </div>
-        <article className="panel table-panel"><div className="panel-heading"><div><h2>Detection history</h2><p>ML-generated predictions received by SentinelIoT</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
+        <article className="panel table-panel"><div className="panel-heading"><div><h2>Detection history</h2><p>Model predictions and physical endpoint signals received by SentinelIoT</p></div><button className="btn subtle" onClick={exportAlerts} disabled={!alerts.length}><Download size={14}/> Export JSON</button></div>
           <div className="table-wrap"><table><thead><tr><th>TIME</th><th>DETECTION</th><th>CONFIDENCE</th><th>MODEL</th><th>LATENCY</th><th>STATUS</th></tr></thead><tbody>
-            {alerts.length ? alerts.map((a,i)=><tr key={a.timestamp+i}><td>{new Date(a.timestamp).toLocaleString()}</td><td>{a.model_prediction || a.attack_type || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence*100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={predictionLabel(a)==="Attack"?"event-badge bad":predictionLabel(a)==="Benign"?"event-badge good":"event-badge neutral"}>{predictionLabel(a)}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No ML alerts yet. Run a sample from Overview.</td></tr>}
+            {alerts.length ? alerts.map((a,i)=><tr key={a.timestamp+i}><td>{new Date(a.timestamp).toLocaleString()}</td><td>{a.display_label || a.attack_type || a.model_prediction || a.scenario || "Unclassified"}</td><td>{a.confidence != null ? `${Math.round(a.confidence*100)}%` : "—"}</td><td><span className="detector">{a.model || "—"}</span></td><td>{a.latency_ms != null ? `${a.latency_ms} ms` : "—"}</td><td><span className={eventStatus(a)==="Attack" || eventStatus(a)==="Triggered"?"event-badge bad":eventStatus(a)==="Normal"?"event-badge good":"event-badge neutral"}>{eventStatus(a)}</span></td></tr>) : <tr><td colSpan="6" className="empty-row">No ML alerts yet. Run a sample from Overview.</td></tr>}
           </tbody></table></div>
         </article>
       </>}
